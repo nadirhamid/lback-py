@@ -764,8 +764,8 @@ PROFILER SPECIFIC
 		pass
 		
 	def _settings(self):
-		if os.path.isfile("/usr/settings.json"):
-			settings = json.loads(open("/usr/settings.json").read())
+		if os.path.isfile("/usr/local/lback/settings.json"):
+			settings = json.loads(open("/usr/local/lback/settings.json").read())
 		elif os.path.isfile("../settings.json"):
 			settings = json.loads(open("../settings.json").read())
 		for i in settings.keys():
@@ -782,8 +782,8 @@ PROFILER SPECIFIC
 			self.db_family = settings['db_family']
 		
 	def _profiles(self):
-		if os.path.isfile("/usr/profiles.json"):
-			self.profiles = json.loads(open("/usr/profiles.json").read())
+		if os.path.isfile("/usr/local/lback/profiles.json"):
+			self.profiles = json.loads(open("/usr/local/lback/profiles.json").read())
 		elif os.path.isfile("../profiles.json"):
 			self.profiles = json.loads(open("../profiles.json").read())	
 
