@@ -590,21 +590,31 @@ class Runtime(object):
 		if 'stop' in dir(self):	
 			self.o.show("Stopping server..")
 
-			os.system("pkill -f 'python ./core.py --server' > /dev/null")
-			os.system("pkill -f 'python /usr/bin/core.py --server' > /dev/null")
+			os.system("pkill -f 'python ./core.py --server'")
+			os.system("pkill -f 'python /usr/bin/core.py --server'")
 			quit()
 			return
 
 		if 'restart' in dir(self):
 			self.o.show("Restarting server..")
 
-			os.system("pkill -f 'python ./core.py --server' > /dev/null")
-			os.system("pkill -f 'python /usr/bin/core.py --server' > /dev/null")
+			os.system("pkill -f 'python ./core.py --server'")
+			os.system("pkill -f 'python /usr/bin/core.py --server'")
 			self.o.show("Started new instance..")
 
 			time.sleep(1)
 			os.system("lback-server --start")
 			quit()
+			return
+		
+		if 'status' in dir(self):
+			self.o.show("Status of SERVER:")
+			return
+
+		if 'stop_profiler' in dir(self):
+			self.o.show("Stopping profiler..")
+			os.system("pkill -f 'python ./core.py --profiler'")
+			os.system("pkill -f 'python /usr/bin/core.py --profiler'")
 			return
 		
 		if 'folder' in dir(self):
@@ -744,14 +754,18 @@ SERVER SPECIFIC
 -st, --start    Start the server
 -sp, --stop     Force a shutdown
 -st, --status   Is the server running or stopped
+
+PROFILER SPECIFIC
+-st, --start Start the profiler
+--stop_profiler Stop the profiler
 		"""
 	
 	def try_hard_to_find(self):
 		pass
 		
 	def _settings(self):
-		if os.path.isfile("/usr/settings.json"):
-			settings = json.loads(open("/usr/settings.json").read())
+		if os.path.isfile("/usr/local/lback/settings.json"):
+			settings = json.loads(open("/usr/local/lback/settings.json").read())
 		elif os.path.isfile("../settings.json"):
 			settings = json.loads(open("../settings.json").read())
 		for i in settings.keys():
@@ -768,8 +782,8 @@ SERVER SPECIFIC
 			self.db_family = settings['db_family']
 		
 	def _profiles(self):
-		if os.path.isfile("/usr/profiles.json"):
-			self.profiles = json.loads(open("/usr/profiles.json").read())
+		if os.path.isfile("/usr/local/lback/profiles.json"):
+			self.profiles = json.loads(open("/usr/local/lback/profiles.json").read())
 		elif os.path.isfile("../profiles.json"):
 			self.profiles = json.loads(open("../profiles.json").read())	
 

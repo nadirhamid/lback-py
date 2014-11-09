@@ -77,6 +77,8 @@ os.system('sudo rm ' + path + "/lback* > /dev/null 2>&1 &")
 os.system('sudo rm /etc/init.d/lback > /dev/null 2>&1 &')
 os.system('sudo rm ' + ffpath + "settings.json > /dev/null 2>&1 &")
 os.system('sudo rm ' + ffpath + "profiler.json > /dev/null 2>&1 &")
+os.system('sudo rm ' + ffpath + "profiler.json > /dev/null 2>&1 &")
+os.system('sudo rm ' + lpath + "/ > /dev/null 2>&1 &")
 os.system('sudo rm ' + lpath + "/settings.json > /dev/null 2>&1 &")
 os.system('sudo rm ' + lpath + "/profiler.json > /dev/null 2>&1 &")
 
