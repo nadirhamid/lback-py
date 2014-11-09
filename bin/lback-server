@@ -1,0 +1,1 @@
+python /usr/bin/core.py --server $1 &

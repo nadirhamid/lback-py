@@ -1,0 +1,12 @@
+{
+	"server_ip": "69.16.237.21",
+	"server_port": "491",
+	"client_ip": "127.0.0.1",
+	"client_port": "90",
+	"db_name": "testing",
+	"db_user": "root",
+	"db_pass": "qpqpqp18",
+	"db_host": "localhost",
+	"db_table": "backups",
+	"db_family": "sqlite"
+}
