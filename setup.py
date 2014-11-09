@@ -1,4 +1,5 @@
-import os, os.path
+
+rt os, os.path
 from glob import iglob
 import sys
 
@@ -77,6 +78,8 @@ os.system('sudo rm ' + path + "/lback* > /dev/null 2>&1 &")
 os.system('sudo rm /etc/init.d/lback > /dev/null 2>&1 &')
 os.system('sudo rm ' + ffpath + "settings.json > /dev/null 2>&1 &")
 os.system('sudo rm ' + ffpath + "profiler.json > /dev/null 2>&1 &")
+os.system('sudo rm ' + lpath + "/settings.json > /dev/null 2>&1 &")
+os.system('sudo rm ' + lpath + "/profiler.json > /dev/null 2>&1 &")
 
 os.system('sudo ln -s ' + path + "/storage.db > /dev/null 2>&1 &")
 os.system('sudo ln -s ' + bin_path + "core.py > /dev/null 2>&1 &")
