@@ -5,7 +5,7 @@ import sys
 try:
 	from setuptools import setup
 except ImportError:
-	from distutils.core import setup
+	from distutils.lback import setup
 
 from distutils.command.build_py import build_py
 
@@ -70,7 +70,7 @@ bin_path = path + '/bin/'
 os.chdir(fpath)
 """ remove all previous files """
 os.system('sudo rm ' + path + "/storage.db > /dev/null 2>&1 &")
-os.system('sudo rm ' + path + "/core.py > /dev/null 2>&1 &")
+os.system('sudo rm ' + path + "/lback.py > /dev/null 2>&1 &")
 os.system('sudo rm ' + path + "/odict.py > /dev/null 2>&1 &")
 os.system('sudo rm ' + path + "/dal.py > /dev/null 2>&1 &")
 os.system('sudo rm ' + path + "/lback* > /dev/null 2>&1 &")
@@ -85,7 +85,7 @@ os.system('sudo rm ' + lpath + "settings.json > /dev/null 2>&1 &")
 os.system('sudo rm ' + lpath + "profiler.json > /dev/null 2>&1 &")
 
 os.system('sudo ln -s ' + path + "/storage.db > /dev/null 2>&1 &")
-os.system('sudo ln -s ' + bin_path + "core.py > /dev/null 2>&1 &")
+os.system('sudo ln -s ' + bin_path + "lback.py > /dev/null 2>&1 &")
 os.system('sudo ln -s ' + bin_path + "dal.py > /dev/null 2>&1 &")
 os.system('sudo ln -s ' + bin_path + "odict.py > /dev/null 2>&1 &")
 os.system('sudo ln -s ' + bin_path + "lback > /dev/null 2>&1 &")
@@ -93,15 +93,15 @@ os.system('sudo ln -s ' + bin_path + "lback-client > /dev/null 2>&1 &")
 os.system('sudo ln -s ' + bin_path + "lback-client > /dev/null 2>&1 &")
 os.system('sudo ln -s ' + bin_path + "lback-server > /dev/null 2>&1 &")
 os.system('sudo ln -s ' + bin_path + "lback-profiler > /dev/null 2>&1 &")
-os.system('sudo ln -s ' + path + "/backups > /dev/null 2>&1 &")
 
 
 if not os.path.isdir(lpath):
 	os.mkdir(lpath)
 
 os.chdir(lpath)
-os.system('sudo ln -s ' + lpath + "settings.json > /dev/null 2>&1 &")
-os.system('sudo ln -s ' + lpath + "profiles.json > /dev/null 2>&1 &")
+os.system('sudo ln -s ' + path + "backups > /dev/null 2>&1 &")
+os.system('sudo ln -s ' + path + "settings.json > /dev/null 2>&1 &")
+os.system('sudo ln -s ' + path + "profiles.json > /dev/null 2>&1 &")
 os.chdir(path)
 os.system('sudo cp ' + path + '/service /etc/init.d/lback > /dev/null 2>&1 &')
 os.system('sudo chkconfig --add lback')

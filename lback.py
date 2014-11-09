@@ -582,24 +582,24 @@ class Runtime(object):
 		if 'graceful' in dir(self):
 			""" TODO add graceful shutdown """
 			self.o.show("Stopping server..")
-			os.system("pkill -f 'python ./core.py --server'")
-			os.system("pkill -f 'python /usr/bin/core.py --server'")
+			os.system("pkill -f 'python ./lback.py --server'")
+			os.system("pkill -f 'python /usr/bin/lback.py --server'")
 			exit()
 			return
 
 		if 'stop' in dir(self):	
 			self.o.show("Stopping server..")
 
-			os.system("pkill -f 'python ./core.py --server'")
-			os.system("pkill -f 'python /usr/bin/core.py --server'")
+			os.system("pkill -f 'python ./lback.py --server'")
+			os.system("pkill -f 'python /usr/bin/lback.py --server'")
 			quit()
 			return
 
 		if 'restart' in dir(self):
 			self.o.show("Restarting server..")
 
-			os.system("pkill -f 'python ./core.py --server'")
-			os.system("pkill -f 'python /usr/bin/core.py --server'")
+			os.system("pkill -f 'python ./lback.py --server'")
+			os.system("pkill -f 'python /usr/bin/lback.py --server'")
 			self.o.show("Started new instance..")
 
 			time.sleep(1)
@@ -613,8 +613,8 @@ class Runtime(object):
 
 		if 'stop_profiler' in dir(self):
 			self.o.show("Stopping profiler..")
-			os.system("pkill -f 'python ./core.py --profiler'")
-			os.system("pkill -f 'python /usr/bin/core.py --profiler'")
+			os.system("pkill -f 'python ./lback.py --profiler'")
+			os.system("pkill -f 'python /usr/bin/lback.py --profiler'")
 			return
 		
 		if 'folder' in dir(self):
