@@ -79,6 +79,7 @@ os.system('sudo rm ' + ffpath + "settings.json > /dev/null 2>&1 &")
 os.system('sudo rm ' + ffpath + "profiler.json > /dev/null 2>&1 &")
 os.system('sudo rm ' + ffpath + "profiler.json > /dev/null 2>&1 &")
 if os.path.isdir(lpath):
+	os.system('sudo rm ' + lpath + "/* > /dev/null 2>&1 &")
 	os.system('sudo rm -rf ' + lpath + "/ > /dev/null 2>&1 &")
 os.system('sudo rm ' + lpath + "settings.json > /dev/null 2>&1 &")
 os.system('sudo rm ' + lpath + "profiler.json > /dev/null 2>&1 &")
