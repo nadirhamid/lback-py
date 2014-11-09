@@ -99,9 +99,9 @@ if not os.path.isdir(lpath):
 	os.mkdir(lpath)
 
 os.chdir(lpath)
-os.system('sudo ln -s ' + path + "backups > /dev/null 2>&1 &")
-os.system('sudo ln -s ' + path + "settings.json > /dev/null 2>&1 &")
-os.system('sudo ln -s ' + path + "profiles.json > /dev/null 2>&1 &")
+os.system('sudo ln -s ' + path + "/backups > /dev/null 2>&1 &")
+os.system('sudo ln -s ' + path + "/settings.json > /dev/null 2>&1 &")
+os.system('sudo ln -s ' + path + "/profiles.json > /dev/null 2>&1 &")
 os.chdir(path)
 os.system('sudo cp ' + path + '/service /etc/init.d/lback > /dev/null 2>&1 &')
 os.system('sudo chkconfig --add lback')
