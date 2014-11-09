@@ -1,5 +1,4 @@
-
-rt os, os.path
+import os, os.path
 from glob import iglob
 import sys
 
