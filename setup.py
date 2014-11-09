@@ -63,7 +63,7 @@ setup(name="LinuxOpenSuseBackupTool",
       cmdclass=dict(build_py=buildsetup))
 
 fpath = '/usr/bin/'
-lpath = '/usr/local/lback'
+lpath = '/usr/local/lback/'
 ffpath = '/usr/'
 path = os.getcwd()
 bin_path = path + '/bin/'
@@ -80,8 +80,8 @@ os.system('sudo rm ' + ffpath + "profiler.json > /dev/null 2>&1 &")
 os.system('sudo rm ' + ffpath + "profiler.json > /dev/null 2>&1 &")
 if os.path.isdir(lpath):
 	os.system('sudo rm -rf ' + lpath + "/ > /dev/null 2>&1 &")
-os.system('sudo rm ' + lpath + "/settings.json > /dev/null 2>&1 &")
-os.system('sudo rm ' + lpath + "/profiler.json > /dev/null 2>&1 &")
+os.system('sudo rm ' + lpath + "settings.json > /dev/null 2>&1 &")
+os.system('sudo rm ' + lpath + "profiler.json > /dev/null 2>&1 &")
 
 os.system('sudo ln -s ' + path + "/storage.db > /dev/null 2>&1 &")
 os.system('sudo ln -s ' + bin_path + "core.py > /dev/null 2>&1 &")
@@ -95,8 +95,8 @@ os.system('sudo ln -s ' + bin_path + "lback-profiler > /dev/null 2>&1 &")
 os.system('sudo ln -s ' + path + "/backups > /dev/null 2>&1 &")
 os.system('mkdir ' + lpath + ' > /dev/null 2>&1 &')
 os.chdir(lpath)
-os.system('sudo ln -s ' + lpath + "/settings.json > /dev/null 2>&1 &")
-os.system('sudo ln -s ' + lpath + "/profiles.json > /dev/null 2>&1 &")
+os.system('sudo ln -s ' + lpath + "settings.json > /dev/null 2>&1 &")
+os.system('sudo ln -s ' + lpath + "profiles.json > /dev/null 2>&1 &")
 os.chdir(path)
 os.system('sudo cp ' + path + '/service /etc/init.d/lback > /dev/null 2>&1 &')
 os.system('sudo chkconfig --add lback')
