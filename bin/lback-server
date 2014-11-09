@@ -1,1 +1,1 @@
-python /usr/bin/lback-server.py --server $1 &
+python /usr/bin/lback.py --server $1 &
