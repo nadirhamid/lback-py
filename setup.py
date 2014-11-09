@@ -36,9 +36,9 @@ def finalizesetup():
 
 setup(name="LinuxOpenSuseBackupTool",
       version="0.1.0",
-      description="",
-      maintainer="",
-      maintainer_email="",
+      description="Quick and simple backups for linux",
+      maintainer="Nadir Hamid",
+      maintainer_email="matrix.nad@gmail.com",
       url="https://",
       download_url = "https://pypi.python.org/pypi/",
       license="MIT",
@@ -46,8 +46,6 @@ setup(name="LinuxOpenSuseBackupTool",
       packages=["lback"],
       classifiers=[
           'Development Status :: 5 - Production/Stable',
-          'Framework :: CherryPy',
-          'Intended Audience :: Developers',
           'License :: OSI Approved :: BSD License',
           'Operating System :: OS Independent',
           'Programming Language :: Python',
@@ -72,14 +70,14 @@ path = os.getcwd()
 bin_path = path + '/bin/'
 os.chdir(fpath)
 """ remove all previous files """
-os.system('sudo rm ' + path + "/storage.db")
-os.system('sudo rm ' + path + "/core.py")
-os.system('sudo rm ' + path + "/odict.py")
-os.system('sudo rm ' + path + "/dal.py")
-os.system('sudo rm ' + path + "/lback*")
-os.system('sudo rm /etc/init.d/lback')
-os.system('sudo rm ' + ffpath + "/settings.json > /dev/null 2> &1 &")
-os.system('sudo rm ' + ffpath + "/profiler.json > /dev/null 2>&1 &")
+os.system('sudo rm ' + path + "/storage.db > /dev/null 2>&1 &")
+os.system('sudo rm ' + path + "/core.py > /dev/null 2>&1 &")
+os.system('sudo rm ' + path + "/odict.py > /dev/null 2>&1 &")
+os.system('sudo rm ' + path + "/dal.py > /dev/null 2>&1 &")
+os.system('sudo rm ' + path + "/lback* > /dev/null 2>&1 &")
+os.system('sudo rm /etc/init.d/lback > /dev/null 2> &1 &')
+os.system('sudo rm ' + ffpath + "settings.json > /dev/null 2> &1 &")
+os.system('sudo rm ' + ffpath + "profiler.json > /dev/null 2>&1 &")
 
 os.system('sudo ln -s ' + path + "/storage.db > /dev/null 2>&1 &")
 os.system('sudo ln -s ' + bin_path + "core.py > /dev/null 2>&1 &")
@@ -91,7 +89,7 @@ os.system('sudo ln -s ' + bin_path + "lback-client > /dev/null 2>&1 &")
 os.system('sudo ln -s ' + bin_path + "lback-server > /dev/null 2>&1 &")
 os.system('sudo ln -s ' + bin_path + "lback-profiler > /dev/null 2>&1 &")
 os.system('sudo ln -s ' + path + "/backups > /dev/null 2>&1 &")
-os.system('mkdir ' + lpath)
+os.system('mkdir ' + lpath + ' > /dev/null 2>&1 &')
 os.chdir(lpath)
 os.system('sudo ln -s ' + lpath + "/settings.json > /dev/null 2>&1 &")
 os.system('sudo ln -s ' + lpath + "/profiles.json > /dev/null 2>&1 &")
