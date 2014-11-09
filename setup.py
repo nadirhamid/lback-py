@@ -17,7 +17,6 @@ class buildsetup(build_py):
         we want to avoid specific modules to be built and deployed
         on Python 2.x. By overriding this method, we filter out
         those modules before distutils process them.
-
         This is in reference to issue #123.
         """
         modules = build_py.find_package_modules(self, package, package_dir)
@@ -75,8 +74,8 @@ os.system('sudo rm ' + path + "/core.py > /dev/null 2>&1 &")
 os.system('sudo rm ' + path + "/odict.py > /dev/null 2>&1 &")
 os.system('sudo rm ' + path + "/dal.py > /dev/null 2>&1 &")
 os.system('sudo rm ' + path + "/lback* > /dev/null 2>&1 &")
-os.system('sudo rm /etc/init.d/lback > /dev/null 2> &1 &')
-os.system('sudo rm ' + ffpath + "settings.json > /dev/null 2> &1 &")
+os.system('sudo rm /etc/init.d/lback > /dev/null 2>&1 &')
+os.system('sudo rm ' + ffpath + "settings.json > /dev/null 2>&1 &")
 os.system('sudo rm ' + ffpath + "profiler.json > /dev/null 2>&1 &")
 
 os.system('sudo ln -s ' + path + "/storage.db > /dev/null 2>&1 &")
@@ -100,7 +99,6 @@ os.system('sudo chkconfig lback on')
 os.chdir(path)
 print """
 Installed the following commands:
-
 lback (same as lback-client)
 lback-client
 lback-server
