@@ -1,0 +1,12 @@
+0.6.0
+------------------------------
+- Local, remote backups
+- set of options to pack,
+  compress and clean backups
+- server, profiler support
+
+0.7.0 
+-----------------------------
+Version support, using -v or --v "{version_name}"
+Ability to acquire latest, oldest version using "latest",
+"oldest" in version respectively.
