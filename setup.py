@@ -81,6 +81,7 @@ os.system('sudo rm ' + ffpath + "profiler.json > /dev/null 2>&1 &")
 if os.path.isdir(lpath):
 	os.system('sudo rm ' + lpath + "/* > /dev/null 2>&1 &")
 	os.system('sudo rm -rf ' + lpath + "/ > /dev/null 2>&1 &")
+        os.system('mkdir ' + lpath)
 os.system('sudo rm ' + lpath + "settings.json > /dev/null 2>&1 &")
 os.system('sudo rm ' + lpath + "profiler.json > /dev/null 2>&1 &")
 
@@ -93,6 +94,7 @@ os.system('sudo ln -s ' + bin_path + "lback-client > /dev/null 2>&1 &")
 os.system('sudo ln -s ' + bin_path + "lback-client > /dev/null 2>&1 &")
 os.system('sudo ln -s ' + bin_path + "lback-server > /dev/null 2>&1 &")
 os.system('sudo ln -s ' + bin_path + "lback-profiler > /dev/null 2>&1 &")
+os.system('sudo ln -s ' + bin_path + "lback-jit > /dev/null 2>&1 &")
 
 
 if not os.path.isdir(lpath):
@@ -113,4 +115,5 @@ lback (same as lback-client)
 lback-client
 lback-server
 lback-profiler
+lback-jit
 """
