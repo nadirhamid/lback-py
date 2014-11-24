@@ -10,3 +10,13 @@
 Version support, using -v or --v "{version_name}"
 Ability to acquire latest, oldest version using "latest",
 "oldest" in version respectively.
+
+0.7.5
+------------------------------
+JIT(just in time) backups. Local only, for now
+lback-jit support with backup based
+instances
+Other updates:
+  new cli features: 
+    --settings open settings from lback
+    --jit      just in time backups for this folder
