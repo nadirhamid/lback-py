@@ -68,14 +68,15 @@ class Backup(object):
 		
 		self.status = 1
 		
-	def run(self):
+	def run(self, pack=True):
 		l = os.listdir(self.folder)
 		#self.zip.write(self.folder)
 		#self.things.append(self.folder)
 		folders = [self._folder(i, self.folder) for i in l if os.path.isdir(self.folder + i)]
 		files = [self._file(i, self.folder) for i in l if os.path.isfile(self.folder + i)]
 		#self.things = glob.glob(self.folder + "*")
-		self.pack()
+                if pack:
+		     self.pack()
 		
 	def get(self):
 		return LOCAL_BACKUP_DIR + self.record_id + '.zip'
@@ -189,16 +190,34 @@ class Server(object):
 		   if len(re.findall(r'RESTORE', message)) > 0:
 				print "Running 'RESTORE'"
 				uid = False
-				uid = re.findall('UID:\s+"([\w\d\-]+)",', message)[0]
+				uid = re.findall('UID:\s+"([\w\d\-\.]+)",', message)[0]
 
+				version = re.findall('VERSION:\s+"([\w\d\-]+)",', message)[0]
 				if not uid:
 					continue
-				"""	
-				r = self.db(self.db[self.db_table].uid == uid).select().first()
+
+				if version.lower() == 'latest':
+					r = self.db(((self.db[self.db_table].uid == uid) | 
+						     (self.db[self.db_table].name == uid) |  
+						     (self.db[self.db_table].folder == uid))).select().last()
+
+				elif version.lower() == 'oldest':
+					r = self.db(((self.db[self.db_table].uid == uid) | 
+						     (self.db[self.db_table].name == uid) |  
+						     (self.db[self.db_table].folder == uid))).select().first()
+
+				else:
+					r = self.db(((self.db[self.db_table].uid == uid) | 
+						     (self.db[self.db_table].name == uid) |  
+						     (self.db[self.db_table].folder == uid)) &
+						     (self.db[self.db_table].version == version)).select().first()
 				if not r:
 					print "SERVER couldn\'t find backup.."
 					continue
-				"""
+				else:
+					uid = row.uid
+
+
 					
 				fi = open(LOCAL_BACKUP_DIR + uid + '.zip', 'r+')
 				contents = fi.read()
@@ -248,7 +267,18 @@ class Server(object):
 					size = re.findall('SIZE:\s+([\d]+),', message)[0]
 				except:
 					pass
-					
+
+				try:
+					version = re.findall('VERSION:\s+([\d\.]+),', message)[0]
+				except:
+					pass
+
+				try:
+					version = re.findall('JIT:\s+([\d\.]+),', message)[0]
+				except:
+					pass
+
+
 				try:
 					folder = re.findall('FOLDER:\s+"([^^]+)",', message)[0]
 				except:
@@ -271,7 +301,7 @@ class Server(object):
 				
 				if bkp.status:
 					""" backed up, send back message """
-					self.db[self.db_table].insert(uid=uid, time=time.time(), folder=folder, size=size, local=False, name=name)
+					self.db[self.db_table].insert(uid=uid, time=time.time(), folder=folder, size=size, local=False, name=name, jit=True, version=version)
 					self.db.commit()
 					c.sendall("SUCCESS")
 					print "Backup complete."
@@ -298,12 +328,12 @@ class Client(object):
 		self.status = 0
 		self.server = server
 	
-	def run(self, cmd='BACKUP', folder=None, uid='', contents='',name='',size=0):
+	def run(self, cmd='BACKUP', folder=None, uid='', contents='',name='',version='1.0.0',size=0, jit=False):
 		s = socket.socket()
 		size = str(size)
 		#s.setblocking(0)
 		s.connect((self.server['ip'], int(self.server['port'])))
-		smessage = cmd + ', ' + 'UID: "' + uid + '", ' + 'FOLDER: "' + folder + '", ' + "SIZE: " + size + ', ' + "NAME: " + name + "\nCONTENTS: " + contents
+		smessage = cmd + ', ' + 'UID: "' + uid + '", ' + 'FOLDER: "' + folder + '", '  + 'JIT: "' + str(jit) +  '", ' +  "SIZE: " + size + ', ' + "VERSION: " + version + ', ' + "NAME: " + name + "\nCONTENTS: " + contents
 		s.sendall(smessage)
 		out = False
 		if cmd == 'BACKUP':
@@ -354,7 +384,53 @@ class Record(object):
 		pass
 	def generate(self):
 		return uuid.uuid4().__str__()
-		
+
+
+"""
+Just in time backups
+"""
+class JIT(object):
+	def __init__(self, db, db_table):
+		self.db = db
+		self.db_table = db_table
+
+	def check(self, record=''):
+		while True:
+			if record:
+				backups = self.db(self.db[self.db_table].uid == record).select()
+			else:
+				backups = self.db(self.db[self.db_table].jit == True).select()
+
+			for i in backups:
+				initial_time = float(i.time)
+				local = i.local
+				uid = i.uid
+                                folder = i.folder
+                                cpath = os.getcwd()
+				
+				files = os.listdir(folder)
+
+				b = Backup(None, folder, False)
+				b.run(False) ## dont actually run.. yet
+				
+				for f in b.things:
+					if os.path.getmtime(f) > initial_time:
+						print "Running JIT Backup file was edited.."
+						""" time for a backup """
+                                                os.chdir(cpath)
+						bkp = Backup(uid, folder)
+						bkp.run()
+
+						if bkp.status == 1:
+							size = str(Util().getFolderSize(folder))
+							self.db(self.db[self.db_table].uid == uid).update(time = time.time(), size=size)
+							self.db.commit()
+
+							break
+
+"""
+Profile based backups
+"""
 class Profiler(object):
 	def __init__(self,profiles,server_ip,server_port,ip,port,db,db_table):
 		self.profiles = profiles
@@ -465,6 +541,9 @@ class Runtime(object):
 		self.help = 0
 		self.clean = 0
 		self.name = "N/A"
+		self.version = "1.0.0"
+                self.is_jit = False
+		self.has_version = False
 
                 if not len(a) > 1:
 			self.help = True
@@ -520,15 +599,28 @@ class Runtime(object):
 				self.start = True
 			if i in ['-sp', '--stop']:
 				self.stop = True
+			if i in ['-sn', '--snapshot']:
+				self.snapshot = True
+			if i in ['-v', '--version']:
+				self.version = j 
+				self.has_version = True
+			if i in ['-j', '--just-in-time', '-jit']:
+				self.jit = True
+                                self.is_jit = True
+			if i in ['--settings']:
+				self.settings = True
 			if i in ['--stop-profiler']:
 				self.stop_profiler = True
 			if i in ['-st', '--status']:
 				self.status = True
-		
+	
 		if self.help:
 			self._help()
 			return
-			
+
+		if not self.has_version and 'restore' in dir(self):
+			self.version = "latest" 
+
 		self.o.show("Running in {0} mode".format(self.type))
 		self.perform()
 	"""
@@ -548,6 +640,8 @@ class Runtime(object):
 				`time` varchar(255),
 				`folder` varchar(255),
 				`size` int,
+			        `version` varchar(5),
+				`jit` varchar(5),
 				`local` varchar(255)
 			); """.format(self.db_table))
 		else:
@@ -560,6 +654,8 @@ class Runtime(object):
 				`time` varchar(255),
 				`folder` varchar(255),
 				`size` int,
+			        `version` varchar(5),
+				`jit` varchar(5),
 				`local` varchar(255)
 			); """.format(self.db_table))
 
@@ -572,13 +668,19 @@ class Runtime(object):
 			Field('time'),
 			Field('folder'),
 			Field('size'),
+			Field('version'),
+		        Field('jit'),
 			Field('local'),
 		)
 
 		
 	def perform(self):
 		is_success = False
-	
+
+		if 'settings' in dir(self):
+			self.o.show('Opening settings')	
+			os.system('vim /usr/local/lback/settings.json')
+
 		if 'graceful' in dir(self):
 			""" TODO add graceful shutdown """
 			self.o.show("Stopping server..")
@@ -622,6 +724,13 @@ class Runtime(object):
 		
 		if 'profiler' in dir(self):
 			profiler = Profiler(self.profiles,self.server_ip,self.server_port,self.ip,self.port,self.db,self.db_table).run()
+
+
+                if 'stop-jit' in dir(self):
+ 			self.o.show("Stopping JIT instance..")
+			os.system("pkill -f 'python ./lback.py --jit'")
+			os.system("pkill -f 'python /usr/bin/lback.py --profiler'")
+                        return
 			
 		if not 'local' in dir(self):
 			self.isLocal = False
@@ -645,7 +754,20 @@ class Runtime(object):
 				bkp.run()
 				
 				if bkp.status == 1:
-					self.db[self.db_table].insert(uid=self.uid, time=time.time(), folder=self.folder, size=self.size, local=self.isLocal,name=self.name)
+
+					if self.version == '1.0.0':
+						""" try to get previous version """
+						""" and up the patch by one """
+						r = self.db(self.db[self.db_table].folder == self.folder).select().last()
+
+						if r:
+							v = r['version'] 
+							cv = re.findall("\d\.\d\.(\d)", v)[0]
+							nv = int(cv) + 1
+							self.version = re.sub('\d$', str(nv), v)
+							
+
+					self.db[self.db_table].insert(uid=self.uid, time=time.time(), folder=self.folder, size=self.size, local=self.isLocal,name=self.name, version=self.version, jit=True if self.is_jit else False)
 					self.db.commit()
 				
 				
@@ -657,7 +779,7 @@ class Runtime(object):
 						self.o.show("Transaction ID: " + self.uid)
 					else:
 						fc = open(bkp.get(), 'r').read()
-						client.run('BACKUP', self.folder, self.uid, fc, self.name,self.size)
+						client.run('BACKUP', self.folder, self.uid, fc, self.name,self.version,self.size)
 						if client.status:
 							self.o.show("Backup Ok -- Now transferring to server")
 							
@@ -675,7 +797,32 @@ class Runtime(object):
 				
 		if 'restore' in dir(self):
 			if 'id' in dir(self):
-				r = self.db(self.db[self.db_table].uid == self.id).select().first()
+
+				if not self.has_version:
+					r = self.db((self.db[self.db_table].uid == self.id)  | \
+					            (self.db[self.db_table].name == self.id) | \
+						    (self.db[self.db_table].folder == self.id)).select().last()
+
+	
+				else:
+
+					if self.version == "latest":
+						r = self.db((self.db[self.db_table].uid == self.id)  | \
+					            (self.db[self.db_table].name == self.id) | \
+						    (self.db[self.db_table].folder == self.id)).select().last()
+
+
+					elif self.version.lower() == "oldest":
+						r = self.db((self.db[self.db_table].uid == self.id)  | \
+					            (self.db[self.db_table].name == self.id) | \
+						    (self.db[self.db_table].folder == self.id)).select().first()
+
+					else:
+						r = self.db(((self.db[self.db_table].uid == self.id)  | \
+							     (self.db[self.db_table].name == self.id) | \
+							     (self.db[self.db_table].folder == self.id)) \
+							   & (self.db[self.db_table].version == self.version)).select().first()
+
 				if not r:
 					self.o.show("ERROR: Backup not found.")
 					return
@@ -699,7 +846,7 @@ class Runtime(object):
 						
 				else:
 					self.o.show("Pinging server for restore..")
-					client.run('RESTORE', self.folder, self.ruid, '')
+					client.run('RESTORE', self.folder, self.ruid, '', '', self.version)
 					self.o.show("Forming archive.. this can take some time")
 					if client.status:
 						self.o.show("Restore Retrieval Ok -- now attempting to restore")
@@ -715,6 +862,14 @@ class Runtime(object):
 							
 			else:
 				pass
+
+		if 'jit' in dir(self):
+                        if 'id' in dir(self):
+                        	jit = JIT(self.db, self.db_table).check(self.id)
+			else:
+                        	self.o.show("Starting a JIT instance on this backup")
+                        	os.system("lback-jit --id '{0}' > /dev/null 2>&1".format(self.uid))
+
 
 		## important to check for success
 		## on this command
@@ -739,7 +894,7 @@ options:
 -b, --backup     Run a backup
 -r, --restore    Run a restore
 -f, --folder     Specify a folder (required *) for backups
--i, --id         Specify an id (required *) for restores
+-i, --id,        Specify an id (required *) for restores [ this can be a folder or name of backup ]
 -n, --name       Name for backup (optional)
 -rm, --remove    Remove a directory on backup
 -x, --compress   Compress an archive (default)
@@ -747,6 +902,9 @@ options:
 -i, --ip         Specify an ip (overridden by settings.json if found)
 -p, --port       Specify a port (overridden by settings.json if found)
 -h, --help       Print this text
+-jit, --just-in-time  Just in time backups (read docs for more) [accepts singular file or document]
+-v, --version specify a version to restore (for restores you can use: LATEST|OLDEST)
+--settings       Opens settings in VIM
 
 SERVER SPECIFIC
 -g, --graceful  Perform a graceful shutdown
@@ -758,6 +916,10 @@ SERVER SPECIFIC
 PROFILER SPECIFIC
 -st, --start Start the profiler
 --stop_profiler Stop the profiler
+
+JIT SPECIFIC
+--st, --start starts a JIT instance
+--stop        Stop the JIT instance
 		"""
 	
 	def try_hard_to_find(self):
