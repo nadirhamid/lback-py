@@ -604,7 +604,7 @@ class Runtime(object):
 			if i in ['-v', '--version']:
 				self.version = j 
 				self.has_version = True
-			if i in ['-j', '--just-in-time', '-jit', '--jit']:
+			if i in ['-j', '--just-in-time', '-jit']:
 				self.jit = True
                                 self.is_jit = True
 			if i in ['--settings']:
