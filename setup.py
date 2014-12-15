@@ -1,11 +1,10 @@
 import os, os.path
-from glob import iglob
 import sys
 
 try:
 	from setuptools import setup
 except ImportError:
-	from distutils.lback import setup
+	from distutils.core import setup
 
 from distutils.command.build_py import build_py
 
