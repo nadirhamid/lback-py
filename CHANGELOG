@@ -20,3 +20,10 @@ Other updates:
   new cli features: 
     --settings open settings from lback
     --jit      just in time backups for this folder
+
+0.7.6
+----------------------------
+S3 Backups, experimental. Singular buckets only.
+Use with:
+	--s3, or -s3 where --folder becomes bucket
+	--help for more

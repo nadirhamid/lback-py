@@ -35,6 +35,13 @@ import re
 
 import zipfile,os.path
 
+try:
+	import boto
+	from boto.s3.key import Key
+	from boto.s3.connection import S3Connection
+except:
+	## no boto
+	pass
 
 LOCAL_BACKUP_DIR = '/usr/local/lback/backups/'
 
@@ -543,6 +550,7 @@ class Runtime(object):
 		self.name = "N/A"
 		self.version = "1.0.0"
                 self.is_jit = False
+		self.s3 = False
 		self.has_version = False
 
                 if not len(a) > 1:
@@ -604,7 +612,7 @@ class Runtime(object):
 			if i in ['-v', '--version']:
 				self.version = j 
 				self.has_version = True
-			if i in ['-j', '--just-in-time', '-jit', '--jit']:
+			if i in ['-j', '--just-in-time', '-jit']:
 				self.jit = True
                                 self.is_jit = True
 			if i in ['--settings']:
@@ -613,6 +621,8 @@ class Runtime(object):
 				self.stop_profiler = True
 			if i in ['-st', '--status']:
 				self.status = True
+			if i in ['-s3', '--s3']:
+				self.s3 = True
 	
 		if self.help:
 			self._help()
@@ -746,6 +756,27 @@ class Runtime(object):
 			self.isLocal = True
 				
 		if 'backup' in dir(self):
+
+			## do s3 backups
+			if 's3' in dir(self) and self.s3:
+				## create a directory
+				## for the s3 buckets
+
+				conn = S3Connection(self.aws_access_key, self.aws_secret)
+				bucket = conn.get_bucket(self.folder)
+			
+				folder = self.folder = "/usr/local/lback/s3/{0}-{1}".format(folder, time.time())
+				
+				keys = bucket.get_all_keys()
+				for j in keys:
+					contents = j.get_contents_as_string()
+					f = open("{0}/{1}".format(folder, j.Name))
+						
+					f.write(contents)
+					f.close()
+
+				self.o.show("Successfully backed up your s3 bucket!")
+
 			if not 'folder' in dir(self):
 				pass
 			else:
@@ -830,6 +861,10 @@ class Runtime(object):
 				self.folder = r['folder']
 				self.local = r['local']
 				self.ruid = r['uid']
+
+				## restore an s3 instance
+				if s3 in dir(self) and self.s3:
+					pass
 				
 				if self.clean:
 					self.o.show("Cleaning directory..")
@@ -843,7 +878,18 @@ class Runtime(object):
 					
 					if rst.status:
 						self.o.show("Restore has been successfully performed")
-						
+					## restore an s3 instance
+					if s3 in dir(self) and self.s3:
+						self.o.show("Now pushing to AWS, S3")
+						conn = S3Connection(self.aws_access_key, self.aws_secret)
+						bucket = conn.get_bucket(self.folder)
+
+						fs = os.listdir(self.folder)
+						for i in fs:
+							k = Key(bucket)
+							f = open(i, "r").read()
+							k.set_contents_from_string(f)
+
 				else:
 					self.o.show("Pinging server for restore..")
 					client.run('RESTORE', self.folder, self.ruid, '', '', self.version)
@@ -902,6 +948,7 @@ options:
 -i, --ip         Specify an ip (overridden by settings.json if found)
 -p, --port       Specify a port (overridden by settings.json if found)
 -h, --help       Print this text
+-s3, --s3        Backup S3 components
 -jit, --just-in-time  Just in time backups (read docs for more) [accepts singular file or document]
 -v, --version specify a version to restore (for restores you can use: LATEST|OLDEST)
 --settings       Opens settings in VIM
@@ -942,6 +989,12 @@ JIT SPECIFIC
 			self.db_family = 'mysql'
 		else:
 			self.db_family = settings['db_family']
+
+		if 'aws_access_key' in settings.keys():
+			self.aws_access_key = settings['aws_access_key']
+
+		if 'aws_secret' in settings.keys():
+			self.aws_secret = settings['aws_secret']
 		
 	def _profiles(self):
 		if os.path.isfile("/usr/local/lback/profiles.json"):
