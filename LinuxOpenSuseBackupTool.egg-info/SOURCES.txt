@@ -1,0 +1,9 @@
+README
+setup.py
+LinuxOpenSuseBackupTool.egg-info/PKG-INFO
+LinuxOpenSuseBackupTool.egg-info/SOURCES.txt
+LinuxOpenSuseBackupTool.egg-info/dependency_links.txt
+LinuxOpenSuseBackupTool.egg-info/top_level.txt
+lback/__init__.py
+lback/core.py
+lback/lback.py

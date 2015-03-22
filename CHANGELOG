@@ -27,3 +27,15 @@ S3 Backups, experimental. Singular buckets only.
 Use with:
 	--s3, or -s3 where --folder becomes bucket
 	--help for more
+
+
+0.7.7
+----------------------------
+
+- removed double backups
+- added regex based folder matching
+  use like:
+  
+  lback --folder "./my_fol.*" --backup --local
+  will match all folders with my_fol.*
+

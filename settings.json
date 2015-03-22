@@ -5,8 +5,8 @@
 	"client_port": "90",
 	"db_name": "testing",
 	"db_user": "root",
-	"db_pass": "qpqpqp18",
+	"db_pass": "",
 	"db_host": "localhost",
 	"db_table": "backups",
-	"db_family": "sqlite"
+	"db_family": "mysql"
 }
