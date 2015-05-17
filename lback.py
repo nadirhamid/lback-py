@@ -863,7 +863,7 @@ class Runtime(object):
 				self.ruid = r['uid']
 
 				## restore an s3 instance
-				if s3 in dir(self) and self.s3:
+				if 's3' in dir(self) and self.s3:
 					pass
 				
 				if self.clean:
@@ -879,7 +879,7 @@ class Runtime(object):
 					if rst.status:
 						self.o.show("Restore has been successfully performed")
 					## restore an s3 instance
-					if s3 in dir(self) and self.s3:
+					if 's3' in dir(self) and self.s3:
 						self.o.show("Now pushing to AWS, S3")
 						conn = S3Connection(self.aws_access_key, self.aws_secret)
 						bucket = conn.get_bucket(self.folder)
