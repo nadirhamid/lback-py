@@ -39,3 +39,7 @@ Use with:
   lback --folder "./my_fol.*" --backup --local
   will match all folders with my_fol.*
 
+0.7.8
+- AWS backups no longer supported, add Makefile
+
+

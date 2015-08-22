@@ -1,0 +1,9 @@
+Lback TODO list
+
+08/21/2015 --------------------------------------------------
+
+- more support needs to be added for JIT backups currently CPU usage is something
+of consideration
+- look into  remote backups on different linux hosts (currently tested on openSuse)
+
+

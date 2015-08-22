@@ -84,6 +84,17 @@ if os.path.isdir(lpath):
 os.system('sudo rm ' + lpath + "settings.json > /dev/null 2>&1 &")
 os.system('sudo rm ' + lpath + "profiler.json > /dev/null 2>&1 &")
 
+known_files = [
+      'lback.py',
+      'dal.py',
+      'lback-server',
+      'lback-client',
+      'lback-jit',
+      'lback-profiler'
+]
+for i in known_files:
+  os.remove(fpath + i)
+
 os.system('sudo ln -s ' + path + "/storage.db > /dev/null 2>&1 &")
 os.system('sudo ln -s ' + bin_path + "lback.py > /dev/null 2>&1 &")
 os.system('sudo ln -s ' + bin_path + "dal.py > /dev/null 2>&1 &")

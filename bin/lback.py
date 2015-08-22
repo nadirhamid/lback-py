@@ -1,5 +1,4 @@
-"""
-Backup tool for linux.
+""" Backup tool for linux.
 This performs the needed functionality
 behind this specifcation.
 
@@ -250,7 +249,17 @@ class Server(object):
         print "Transaction ID: " + uid
         c.close()
     
-        
+       
+       if len(re.findall(r'DELETE', message))>0:
+         print "Running 'DELETE'"
+         id = re.findall("UID=\"(.*)\"", message)
+         
+         status = os.remove(LOCAL_BACKUP_DIR +  id[0] + ".zip") 
+         if not os.path.isfile(LOCAL_BACKUP_DIR + id[0] + ".zip"):
+           print "Backup deleted successfull.."
+           self.db(self.db[self.db_table].uid == id[0]).delete() 
+         else:
+           print "Could not delete the backup device or resource busy"
           
        if len(re.findall(r'BACKUP', message)) > 0:
         print "Running 'BACKUP'"
@@ -340,10 +349,10 @@ class Client(object):
     size = str(size)
     #s.setblocking(0)
     s.connect((self.server['ip'], int(self.server['port'])))
-    smessage = cmd + ', ' + 'UID: "' + uid + '", ' + 'FOLDER: "' + folder + '", '  + 'JIT: "' + str(jit) +  '", ' +  "SIZE: " + size + ', ' + "VERSION: " + version + ', ' + "NAME: " + name + "\nCONTENTS: " + contents
+    smessage = cmd + ', ' + 'UID: "' + uid + '", ' + 'FOLDER: "' + os.path.abspath(folder) + '", '  + 'JIT: "' + str(jit) +  '", ' +  "SIZE: " + size + ', ' + "VERSION: " + version + ', ' + "NAME: " + name + "\nCONTENTS: " + contents
     s.sendall(smessage)
     out = False
-    if cmd == 'BACKUP':
+    if cmd == 'BACKUP' or  cmd == 'DELETE':
       self.m = recvall(s)
     else:
       self.m = ""
@@ -472,7 +481,7 @@ class Profiler(object):
           bkp.run()
 
           if bkp.status == 1:
-            self.db[self.db_table].insert(uid=uid, time=time.time(), folder=i['folder'], local=i['local'],name=name,size=size)
+            self.db[self.db_table].insert(uid=uid, time=time.time(), folder=os.path.abspath(i['folder']), local=i['local'],name=name,size=size)
             self.db.commit()
             if i['local']:
               self.o.show("Backup Ok -- Now saving to disk")
@@ -593,6 +602,8 @@ class Runtime(object):
         self.type = 'PROFILER'
       if i in ['-rm', '--remove']:
         self.remove = True
+      if i in ['-del', '--delete']:
+        self.delete = True
       if i in ['-n', '--name']:
         self.name = j
       if i in ['-cl', '--clean']:
@@ -763,27 +774,6 @@ class Runtime(object):
       self.isLocal = True
         
     if 'backup' in dir(self):
-
-      ## do s3 backups
-      if 's3' in dir(self) and self.s3:
-        ## create a directory
-        ## for the s3 buckets
-
-        conn = S3Connection(self.aws_access_key, self.aws_secret)
-        bucket = conn.get_bucket(self.folder)
-      
-        folder = self.folder = "/usr/local/lback/s3/{0}-{1}".format(folder, time.time())
-        
-        keys = bucket.get_all_keys()
-        for j in keys:
-          contents = j.get_contents_as_string()
-          f = open("{0}/{1}".format(folder, j.Name))
-            
-          f.write(contents)
-          f.close()
-
-        self.o.show("Successfully backed up your s3 bucket!")
-
       if not 'folder' in dir(self):
         pass
       else:
@@ -805,7 +795,7 @@ class Runtime(object):
               self.version = re.sub('\d$', str(nv), v)
               
 
-          self.db[self.db_table].insert(uid=self.uid, time=time.time(), folder=self.folder, size=self.size, local=self.isLocal,name=self.name, version=self.version, jit=True if self.is_jit else False)
+          self.db[self.db_table].insert(uid=self.uid, time=time.time(), folder=os.path.abspath(self.folder), size=self.size, local=self.isLocal,name=self.name, version=self.version, jit=True if self.is_jit else False)
           self.db.commit()
         
         
@@ -817,7 +807,7 @@ class Runtime(object):
             self.o.show("Transaction ID: " + self.uid)
           else:
             fc = open(bkp.get(), 'r').read()
-            client.run('BACKUP', self.folder, self.uid, fc, self.name,self.version,self.size)
+            client.run('BACKUP', os.path.abspath(self.folder), self.uid, fc, self.name,self.version,self.size)
             if client.status:
               self.o.show("Backup Ok -- Now transferring to server")
               
@@ -885,21 +875,9 @@ class Runtime(object):
           
           if rst.status:
             self.o.show("Restore has been successfully performed")
-          ## restore an s3 instance
-          if s3 in dir(self) and self.s3:
-            self.o.show("Now pushing to AWS, S3")
-            conn = S3Connection(self.aws_access_key, self.aws_secret)
-            bucket = conn.get_bucket(self.folder)
-
-            fs = os.listdir(self.folder)
-            for i in fs:
-              k = Key(bucket)
-              f = open(i, "r").read()
-              k.set_contents_from_string(f)
-
         else:
           self.o.show("Pinging server for restore..")
-          client.run('RESTORE', self.folder, self.ruid, '', '', self.version)
+          client.run('RESTORE', os.path.abspath(self.folder), self.ruid, '', '', self.version)
           self.o.show("Forming archive.. this can take some time")
           if client.status:
             self.o.show("Restore Retrieval Ok -- now attempting to restore")
@@ -931,6 +909,75 @@ class Runtime(object):
       if 'folder' in dir(self):
         shutil.rmtree(self.folder)
         self.o.show("Directory successfully deleted..")
+    if 'delete' in dir(self):
+      client = Client(self.port, self.ip, dict(ip=self.ip,port=self.port))
+      if 'id' in dir(self):
+        row =self.db(self.db[self.db_table].uid == self.id).select().first()
+        
+        if row:
+          print "Removing backup: " + row.name
+     
+          if not row.local: 
+            client.run("DELETE",  uid=row.uid)
+            print client.m
+          else:
+            os.remove(LOCAL_BACKUP_DIR + row.uid+".zip")
+            if not os.path.isfile(LOCAL_BACKUP_DIR +  row.uid + ".zip"):
+              print "Removed backup successfully"
+            else:
+              print "Could not delete backup device or resource busy"
+
+          self.db(self.db[self.db_table].uid == self.id).delete()
+        else:
+          row = self.db(self.db[self.db_table].folder == self.folder).select()
+          if len(row) > 0:
+            print "There are multiple backups with: " + self.folder
+            counter = 1
+            counterOfBackups= dict()
+            for i in row:
+              print "Press " +counter +  " to delete: "  
+              print i.as_dict()
+              counterOfBackups[counter] =i.uid
+              counter += 1
+            numberSelected = ""
+            while numberSelected != "QUIT":
+              numberSelected = raw_input()
+              if numberSelected >0  and numberSelected < len(counterOfBackups):
+                thisBackup =counterOfBackups[numberSelected]
+                theBackup = self.db(self.db[self.db_table].uid == thisBackup).select().first()
+                print "removing: " + theBackup.name 
+                if not theBackup.local:
+                  client.run("DELETE",uid=theBackup.uid) 
+                  print client.m
+                else:
+      
+                  os.remove(LOCAL_BACKUP_DIR +theBackup.uid + ".zip")
+                  if not os.path.isfile(LOCAL_BACKUP_DIR +   theBackup.uid + ".zip"):
+                    print "Removed the backup successfully"
+                  else:
+                    print "Could not delete the backup device or resource is busy"
+    
+                self.db(self.db[self.db_table].uid == thisBackup).delete()
+                print "removed this backup successfully"
+              else:
+                print "not a valid number please press one of: " + ",".join(counterOfBackups.keys())
+              print "Press QUIT to exit or another number to delete more"
+
+          elif len(row) == 1:
+            row = row.first()   
+            if not row.local:
+              client.run("DELETE",uid=row.uid)
+            else:
+              os.remove(LOCAL_BACKUP_DIR + row.uid +".zip")
+              if not os.path.isfile(LOCAL_BACKUP_DIR +  row.uid + ".zip"):
+                print "Backup removed successfully"
+              else:
+                print "Could not remove the backup" 
+            
+            self.db(self.db[self.db_table].folder == self.folder).delete()
+            print "removed this backup successfully "
+          else: 
+            print "Could not find this backup"
       
     if 'list' in dir(self):
       rows = self.db(self.db[self.db_table].time > 0).select().as_list()
@@ -955,7 +1002,7 @@ options:
 -i, --ip         Specify an ip (overridden by settings.json if found)
 -p, --port       Specify a port (overridden by settings.json if found)
 -h, --help       Print this text
--s3, --s3        Backup S3 components
+-del, --delete   Delete a backup
 -jit, --just-in-time  Just in time backups (read docs for more) [accepts singular file or document]
 -v, --version specify a version to restore (for restores you can use: LATEST|OLDEST)
 --settings       Opens settings in VIM
@@ -996,13 +1043,7 @@ JIT SPECIFIC
       self.db_family = 'mysql'
     else:
       self.db_family = settings['db_family']
-
-    if 'aws_access_key' in settings.keys():
-      self.aws_access_key = settings['aws_access_key']
-
-    if 'aws_secret' in settings.keys():
-      self.aws_secret = settings['aws_secret']
-    
+        
   def _profiles(self):
     if os.path.isfile("/usr/local/lback/profiles.json"):
       self.profiles = json.loads(open("/usr/local/lback/profiles.json").read())
