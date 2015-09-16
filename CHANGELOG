@@ -42,4 +42,19 @@ Use with:
 0.7.8
 - AWS backups no longer supported, add Makefile
 
+0.7.9
+- make profiles.json human readable dates
+ {TIMESTAMP} becomes Sept 01, 2015 01:00:00 
+ %b %d, %Y %H:%M:%S
+ 
+
+
+
+
+   
+
+
+
+
+
 

@@ -1,5 +1,5 @@
 """ Backup tool for linux.
-This performs the needed functionality
+This performs ehe needed functionality
 behind this specifcation.
 
 Implementors must deciede which 
@@ -20,6 +20,7 @@ from dal import DAL, Field
 import errno
 import subprocess
 import threading
+import datetime
 import zipfile
 import shutil
 import socket
@@ -33,6 +34,7 @@ import os
 import re
 
 import zipfile,os.path
+from datetime import timedelta
 
 try:
   import boto
@@ -461,11 +463,13 @@ class Profiler(object):
     client = Client(self.port, self.ip, dict(ip=self.server_ip, port=self.server_port))
     
     while True:
-      now = int(time.time())
+      now = time.time()
       for i in self.profiles:
         if not os.path.isdir(i['folder']):
           continue
-          
+         
+        print "Reading scheduled backup" 
+        print i.__str__()
         size = str(Util().getFolderSize(i['folder']))
         name = "N/A"
         if 'name' in i.keys():
@@ -474,37 +478,48 @@ class Profiler(object):
         c = self.db((self.db[self.db_table].name == name) & (self.db[self.db_table].folder == i['folder'])).count()
         if c > 0:
           continue
-    
-        if int(i['time']) >= now:
-          uid = Record().generate()
-          bkp = Backup(uid, i['folder'])
-          bkp.run()
 
-          if bkp.status == 1:
-            self.db[self.db_table].insert(uid=uid, time=time.time(), folder=os.path.abspath(i['folder']), local=i['local'],name=name,size=size)
-            self.db.commit()
-            if i['local']:
-              self.o.show("Backup Ok -- Now saving to disk")
-              self.o.show("Local Backup has been successfully stored")
-              
-            else:
-              fc = open(bkp.get(), "r+").read()
-              client.run('BACKUP', i['folder'], uid, fc,name,size)
-              if client.status:
-                self.o.show("Backup Ok -- Now transferring to server")
+        if i['time'].isdigit():
+          dst_time = int(i['time'])
+        else:
+          ## try parsing the time
+          dst_time = datetime.datetime.strptime(i['time'], "%b %d, %Y %H:%M:%S")
+          epoch  =datetime.datetime(1970, 1,1)
+          delt =   dst_time - epoch
+          dst_time =  float((delt.microseconds + (delt.seconds +delt.days *  86400) * 10**6) / 10**6)
+   
+
+        if dst_time: 
+          if now >= dst_time:
+            uid = Record().generate()
+            bkp = Backup(uid, i['folder'])
+            bkp.run()
+
+            if bkp.status == 1:
+              self.db[self.db_table].insert(uid=uid, time=time.time(), folder=os.path.abspath(i['folder']), local=i['local'],name=name,size=size)
+              self.db.commit()
+              if i['local']:
+                self.o.show("Backup Ok -- Now saving to disk")
+                self.o.show("Local Backup has been successfully stored")
                 
-                fp = client.get()
-                if len(re.findall("SUCCESS", fp)) > 0:
-                  self.o.show("Remote Backup has been successfully transferred")
-                  
-                  os.remove(bkp.get())
-                else:
-                  self.o.show("Something went wrong on the server.. couldnt back that folder. Reverting changes")
               else:
-                pass
-          else:
-            pass
-        
+                fc = open(bkp.get(), "r+").read()
+                client.run('BACKUP', i['folder'], uid, fc,name,size)
+                if client.status:
+                  self.o.show("Backup Ok -- Now transferring to server")
+                  
+                  fp = client.get()
+                  if len(re.findall("SUCCESS", fp)) > 0:
+                    self.o.show("Remote Backup has been successfully transferred")
+                    
+                    os.remove(bkp.get())
+                  else:
+                    self.o.show("Something went wrong on the server.. couldnt back that folder. Reverting changes")
+                else:
+                  pass
+            else:
+              pass
+          
   
     
 class Util(object):
@@ -535,6 +550,8 @@ class Util(object):
           path = os.path.join(path, word)
         zf.write(member, path)
   def getFolderSize(self,p):
+    if not os.path.isfile(p) and os.path.isdir(p):
+      return
     from functools import partial
     prepend = partial(os.path.join, p)
     return sum([(os.path.getsize(f) if os.path.isfile(f) else self.getFolderSize(f)) for f in map(prepend, os.listdir(p))])

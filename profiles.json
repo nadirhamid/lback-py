@@ -1,20 +1,20 @@
 [
 {
-	"time": "1415286140",
+	"time": "Sep 16, 2015 20:00:00", 
 	"local": false,
 	"name": "exampletimed_backup",
 	"compress": true,
 	"folder": "C:/Ruby200"
 },
 {
-	"time": "1415286140",
+	"time": "Sep 16, 2015 20:00:00",
 	"local": false,
 	"compress": true,
 	"name": "another example",
 	"folder": "C:/Ruby200"
 },
 {
-	"time": "1415286140",
+	"time": "Sep 17, 2015 20:00:00", 
 	"local": false,
 	"compress": true,
 	"name": "another example",

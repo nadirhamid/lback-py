@@ -93,7 +93,8 @@ known_files = [
       'lback-profiler'
 ]
 for i in known_files:
-  os.remove(fpath + i)
+  if os.path.isfile(i):
+    os.remove(fpath + i)
 
 os.system('sudo ln -s ' + path + "/storage.db > /dev/null 2>&1 &")
 os.system('sudo ln -s ' + bin_path + "lback.py > /dev/null 2>&1 &")
