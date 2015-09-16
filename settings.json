@@ -3,7 +3,7 @@
 	"server_port": "4900",
 	"client_ip": "127.0.0.1",
 	"client_port": "90",
-	"db_name": "testing",
+	"db_name": "lback",
 	"db_user": "root",
 	"db_pass": "",
 	"db_host": "localhost",
