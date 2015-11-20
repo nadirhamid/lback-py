@@ -36,6 +36,12 @@ import re
 import zipfile,os.path
 from datetime import timedelta
 
+from google.protobuf.message import Message
+from google.protobuf.descriptor import FieldDescriptor, Descriptor
+from google.protobuf.reflection import GeneratedProtocolMessageType
+
+
+
 try:
   import boto
   from boto.s3.key import Key
@@ -45,6 +51,42 @@ except:
   pass
 
 LOCAL_BACKUP_DIR = '/usr/local/lback/backups/'
+
+def  make_lback_protobuf_field(name, type, type1, idx=0, tag=0, default_value=""):
+   return FieldDescriptor(name, name,idx,tag, type, type1,default_value, name,None,None,None,False,None)
+def make_lback_protobuf_descriptor(name, fields=[], enum_fields=[], containing_fields=[], nestable_fields=[]):
+   return Descriptor(name, name, name, None, fields, nestable_fields, enum_fields, containing_fields)
+
+## UID, NAME, SIZE, VERSION, JIT, FOLDER, CONTENTS, CMD, VERSION, STATUS
+uid_field = make_lback_protobuf_field("UID", FieldDescriptor.TYPE_STRING, FieldDescriptor.CPPTYPE_STRING,1,1)
+name_field = make_lback_protobuf_field("NAME", FieldDescriptor.TYPE_STRING, FieldDescriptor.CPPTYPE_STRING,2,2)
+size_field = make_lback_protobuf_field("SIZE",  FieldDescriptor.TYPE_FLOAT, FieldDescriptor.CPPTYPE_FLOAT,3,3,0.0)
+jit_field =  make_lback_protobuf_field("JIT", FieldDescriptor.TYPE_BOOL, FieldDescriptor.CPPTYPE_BOOL,4,4,False)
+folder_field = make_lback_protobuf_field("FOLDER", FieldDescriptor.TYPE_STRING, FieldDescriptor.CPPTYPE_STRING,5,5)
+contents_field = make_lback_protobuf_field("CONTENTS", FieldDescriptor.TYPE_STRING, FieldDescriptor.CPPTYPE_STRING,6,6)
+cmd_field = make_lback_protobuf_field("CMD", FieldDescriptor.TYPE_STRING,FieldDescriptor.CPPTYPE_STRING,7,7)
+version_field = make_lback_protobuf_field("VERSION",FieldDescriptor.TYPE_STRING,FieldDescriptor.CPPTYPE_STRING,8,8)
+status_field = make_lback_protobuf_field("STATUS",FieldDescriptor.TYPE_STRING,FieldDescriptor.CPPTYPE_STRING,9,9)
+
+lback_msg_descriptor = make_lback_protobuf_descriptor("LBack_Protobuf_Message", [
+    uid_field,
+    name_field,
+    size_field,
+    jit_field,
+    folder_field,
+    contents_field,
+    cmd_field,
+    version_field,
+    status_field
+])
+      
+
+class LBack_Protobuf_Message(Message):
+  __metaclass__ = GeneratedProtocolMessageType 
+  DESCRIPTOR  = lback_msg_descriptor
+
+
+
 
 class Backup(object):
   def __init__(self, record_id, folder='./', client=True):
@@ -192,15 +234,17 @@ class Server(object):
        
        message = recvall(c)
 
+       protobufMessage = LBackProtobuf_Message()
+       protobufMessage.ParseFromString(message)
        """
        what command is this?
        """
-       if len(re.findall(r'RESTORE', message)) > 0:
+       if protobufMessage.CMD == "RESTORE":
         print "Running 'RESTORE'"
         uid = False
-        uid = re.findall('UID:\s+"([\w\d\-\.]+)",', message)[0]
+        uid = protobufMessage.UID
 
-        version = re.findall('VERSION:\s+"([\w\d\-]+)",', message)[0]
+        version = protobufMessage.VERSION
         if not uid:
           continue
 
@@ -230,11 +274,15 @@ class Server(object):
         fi = open(LOCAL_BACKUP_DIR + uid + '.zip', 'r+')
         contents = fi.read()
         fi.close()
-        fullmsg = "SUCCESS" + "\n" + "CONTENTS: " + contents
+        #fullmsg = "SUCCESS" + "\n" + "CONTENTS: " + contents
+        fullmsg = LBack_Protobuf_Message()
+        fullmsg.STATUS = "SUCCESS"
+        fullmsg.CONTENTS = contents
+        rawcontents = fullmsg.SerializeToString()
         it = 0
         while True:
           try:
-            tmsg = fullmsg[it:it+2048]
+            tmsg = rawcontents[it:it+2048]
             if tmsg != "":
               c.send(tmsg)
             else:
@@ -252,65 +300,25 @@ class Server(object):
         c.close()
     
        
-       if len(re.findall(r'DELETE', message))>0:
+       elif protobufMessage.CMD == "DELETE":
          print "Running 'DELETE'"
-         id = re.findall("UID=\"(.*)\"", message)
+         uid = protobufMessage.UID
          
-         status = os.remove(LOCAL_BACKUP_DIR +  id[0] + ".zip") 
-         if not os.path.isfile(LOCAL_BACKUP_DIR + id[0] + ".zip"):
+         status = os.remove(LOCAL_BACKUP_DIR +  uid + ".zip") 
+         if not os.path.isfile(LOCAL_BACKUP_DIR + uid + ".zip"):
            print "Backup deleted successfull.."
-           self.db(self.db[self.db_table].uid == id[0]).delete() 
+           self.db(self.db[self.db_table].uid == uid).delete() 
          else:
            print "Could not delete the backup device or resource busy"
           
-       if len(re.findall(r'BACKUP', message)) > 0:
+       elif protobufMessage.CMD == "BACKUP":
         print "Running 'BACKUP'"
-        uid = 0
-        contents = 0
-        folder = 0
-        name = "N/A"
-        size = 0
+        uid = protobufMessage.UID
+        contents = protobufMessage.CONTENTS
+        folder = protobufMessage.FOLDER
+        name =protobufMessage.NAME
+        size = protobufMessage.SIZE
         c.sendall("SUCCESS")
-        try:
-          uid = re.findall('UID:\s+"([\w\d\-]+)",', message)[0]
-        except:
-          pass
-
-        try:
-          name = re.findall('NAME:\s+(.*)', message)[0]
-        except:
-          pass
-          
-        try:
-          size = re.findall('SIZE:\s+([\d]+),', message)[0]
-        except:
-          pass
-
-        try:
-          version = re.findall('VERSION:\s+([\d\.]+),', message)[0]
-        except:
-          pass
-
-        try:
-          version = re.findall('JIT:\s+([\d\.]+),', message)[0]
-        except:
-          pass
-
-
-        try:
-          folder = re.findall('FOLDER:\s+"([^^]+)",', message)[0]
-        except:
-          pass
-          
-        try:
-          contents = re.sub('.*CONTENTS:\s+', '', message)
-          contents = re.sub('BACKUP.*\n', '', contents)
-        except:
-          pass
-
-        if not uid:
-          continue
-
         if not contents:
           continue
 
@@ -351,9 +359,21 @@ class Client(object):
     size = str(size)
     #s.setblocking(0)
     s.connect((self.server['ip'], int(self.server['port'])))
-    smessage = cmd + ', ' + 'UID: "' + uid + '", ' + 'FOLDER: "' + os.path.abspath(folder) + '", '  + 'JIT: "' + str(jit) +  '", ' +  "SIZE: " + size + ', ' + "VERSION: " + version + ', ' + "NAME: " + name + "\nCONTENTS: " + contents
-    s.sendall(smessage)
+    #smessage = cmd + ', ' + 'UID: "' + uid + '", ' + 'FOLDER: "' + os.path.abspath(folder) + '", '  + 'JIT: "' + str(jit) +  '", ' +  "SIZE: " + size + ', ' + "VERSION: " + version + ', ' + "NAME: " + name + "\nCONTENTS: " + contents
+    smessage = LBack_Protobuf_Message()
+    smessage.CMD = cmd
+    smessage.UID = uid
+    smessage.FOLDER = os.path.abspath(folder)
+    smessage.JIT = jit 
+    smessage.SIZE = double(size)
+    smessage.VERSION  =version
+    smessage.NAME = name
+    smessage.CONTENTS = contents
+
+    s.sendall(smessage.SerializeToString())
     out = False
+    ###  shorter spurts for commands not
+    ## needing heavy TCP/IP communication
     if cmd == 'BACKUP' or  cmd == 'DELETE':
       self.m = recvall(s)
     else:
@@ -379,14 +399,22 @@ class Client(object):
           select.select([s], [], [])
           
     try:
-      if len(re.findall("CONTENTS:\s+", self.m)) > 0:
-        self.m = re.sub('SUCCESS.*\n', '', self.m)
-        self.m = re.sub(".*CONTENTS:\s+", "", self.m)
+      the_message = LBack_Protobuf_Message() 
+      the_message.ParseFromString(self.m)
+      s.close()
+      self.status = 1
+      return ClientReply(the_message.STATUS, the_message) 
+      #if the_message.STATUS == "SUCCESS":
+         
+      #if len(re.findall("CONTENTS:\s+", self.m)) > 0:
+      #  self.m = re.sub('SUCCESS.*\n', '', self.m)
+      #  self.m = re.sub(".*CONTENTS:\s+", "", self.m)
     except:
-      pass
-      
-    s.close()
-    self.status = 1
+      the_message  = LBack_Protobuf_Message()
+      the_message.STATUS = "FAIL"
+      s.close()  
+      self.status = 0
+      return ClientReply(the_message.STATUS, the_message)
   
   def get(self):
     return self.m
@@ -396,7 +424,12 @@ class Client(object):
     
   def receive(self, data):
     pass
-  
+ 
+class ClientReply(object):
+  def __init__(self,status, lback_message):
+    self.status = status
+    self.msg = lback_message
+ 
 class Record(object):
   def __init__(self):
     pass
