@@ -46,6 +46,11 @@ Use with:
 - make profiles.json human readable dates
  {TIMESTAMP} becomes Sept 01, 2015 01:00:00 
  %b %d, %Y %H:%M:%S
+
+
+0.8.0
+- Change internal TCP/IP communication to use Google Protobuf
+- nothing else of note
  
 
 
