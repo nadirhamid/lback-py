@@ -1,5 +1,6 @@
 import os, os.path
 import sys
+import sys
 
 try:
 	from setuptools import setup
@@ -27,6 +28,13 @@ class buildsetup(build_py):
             amended_modules.append((package_, module, module_file))
 
         return amended_modules
+def get_version():
+  import pkg_resources
+  try:
+    version = pkg_resources.get_distribution("LinuxOpenSuseBackupTool").version
+  except:
+    return None
+  return version
 
 def finalizesetup():
 	pass
@@ -61,70 +69,84 @@ setup(name="LinuxOpenSuseBackupTool",
       ],
       cmdclass=dict(build_py=buildsetup))
 
-fpath = '/usr/bin/'
-lpath = '/usr/local/lback/'
-ffpath = '/usr/'
-path = os.getcwd()
-bin_path = path + '/bin/'
-os.chdir(fpath)
-""" remove all previous files """
-os.system('sudo rm ' + path + "/storage.db > /dev/null 2>&1 &")
-os.system('sudo rm ' + path + "/lback.py > /dev/null 2>&1 &")
-os.system('sudo rm ' + path + "/odict.py > /dev/null 2>&1 &")
-os.system('sudo rm ' + path + "/dal.py > /dev/null 2>&1 &")
-os.system('sudo rm ' + path + "/lback* > /dev/null 2>&1 &")
-os.system('sudo rm /etc/init.d/lback > /dev/null 2>&1 &')
-os.system('sudo rm ' + ffpath + "settings.json > /dev/null 2>&1 &")
-os.system('sudo rm ' + ffpath + "profiler.json > /dev/null 2>&1 &")
-os.system('sudo rm ' + ffpath + "profiler.json > /dev/null 2>&1 &")
-if os.path.isdir(lpath):
-	os.system('sudo rm ' + lpath + "/* > /dev/null 2>&1 &")
-	os.system('sudo rm -rf ' + lpath + "/ > /dev/null 2>&1 &")
-        os.system('mkdir ' + lpath)
-os.system('sudo rm ' + lpath + "settings.json > /dev/null 2>&1 &")
-os.system('sudo rm ' + lpath + "profiler.json > /dev/null 2>&1 &")
 
-known_files = [
-      'lback.py',
-      'dal.py',
-      'lback-server',
-      'lback-client',
-      'lback-jit',
-      'lback-profiler'
-]
-for i in known_files:
-  if os.path.isfile(i):
-    os.remove(fpath + i)
-
-os.system('sudo ln -s ' + path + "/storage.db > /dev/null 2>&1 &")
-os.system('sudo ln -s ' + bin_path + "lback.py > /dev/null 2>&1 &")
-os.system('sudo ln -s ' + bin_path + "dal.py > /dev/null 2>&1 &")
-os.system('sudo ln -s ' + bin_path + "odict.py > /dev/null 2>&1 &")
-os.system('sudo ln -s ' + bin_path + "lback > /dev/null 2>&1 &")
-os.system('sudo ln -s ' + bin_path + "lback-client > /dev/null 2>&1 &")
-os.system('sudo ln -s ' + bin_path + "lback-client > /dev/null 2>&1 &")
-os.system('sudo ln -s ' + bin_path + "lback-server > /dev/null 2>&1 &")
-os.system('sudo ln -s ' + bin_path + "lback-profiler > /dev/null 2>&1 &")
-os.system('sudo ln -s ' + bin_path + "lback-jit > /dev/null 2>&1 &")
+if sys.argv [1]=="install":
+  fpath = '/usr/bin/'
+  lpath = '/usr/local/lback/'
+  ffpath = '/usr/'
+  path = os.getcwd()
+  bin_path = path + '/bin/'
+  os.chdir(fpath)
+  version = get_version()
+  if os.path.isdir("/usr/local/lback/") and version:
+    ##found current
+    print "Found current LBack moving to {0}-{1}".format("/usr/local/lback", version)
+    os.mkdir("{0}-{1}/".format("/usr/local/lback",version))
+    os.system("mv {0} {1}-{2}/".format("/usr/local/lback", "/usr/local/lback", version))
+    #files_in_current = os.listdir("/usr/local/lback")
+    #for i in files_in_current:
+    #  os.remove("/usr/local/lback/"+i)
+    #os.removedirs("/usr/local/lback/")
 
 
-if not os.path.isdir(lpath):
-	os.mkdir(lpath)
 
-os.chdir(lpath)
-os.system('sudo ln -s ' + path + "/backups > /dev/null 2>&1 &")
-os.system('sudo ln -s ' + path + "/settings.json > /dev/null 2>&1 &")
-os.system('sudo ln -s ' + path + "/profiles.json > /dev/null 2>&1 &")
-os.chdir(path)
-os.system('sudo cp ' + path + '/service /etc/init.d/lback > /dev/null 2>&1 &')
-os.system('sudo chkconfig --add lback')
-os.system('sudo chkconfig lback on')
-os.chdir(path)
-print """
-Installed the following commands:
-lback (same as lback-client)
-lback-client
-lback-server
-lback-profiler
-lback-jit
-"""
+  """ remove all previous files """
+  os.system('sudo rm ' + path + "/storage.db")
+  os.system('sudo rm ' + path + "/lback.py")
+  os.system('sudo rm ' + path + "/odict.py")
+  os.system('sudo rm ' + path + "/dal.py")
+  os.system('sudo rm ' + path + "/lback*")
+  os.system('sudo rm /etc/init.d/lback')
+  os.system('sudo rm ' + ffpath + "settings.json")
+  os.system('sudo rm ' + ffpath + "profiler.json")
+  os.system('sudo rm ' + ffpath + "profiler.json")
+  os.system('sudo rm ' + lpath + "settings.json")
+  os.system('sudo rm ' + lpath + "profiler.json")
+
+  known_files = [
+        'lback.py',
+        'dal.py',
+        'lback',
+        'lback-server',
+        'lback-client',
+        'lback-jit',
+        'lback-profiler'
+  ]
+  for i in known_files:
+    if os.path.isfile(i):
+      os.remove(fpath + i)
+
+  os.system('sudo ln -s ' + path + "/storage.db")
+  os.system('sudo ln -s ' + bin_path + "lback.py")
+  os.system('sudo ln -s ' + bin_path + "dal.py")
+  os.system('sudo ln -s ' + bin_path + "odict.py")
+  os.system('sudo ln -s ' + bin_path + "lback")
+  os.system('sudo ln -s ' + bin_path + "lback-client")
+  os.system('sudo ln -s ' + bin_path + "lback-client")
+  os.system('sudo ln -s ' + bin_path + "lback-server")
+  os.system('sudo ln -s ' + bin_path + "lback-profiler")
+  os.system('sudo ln -s ' + bin_path + "lback-jit")
+  if os.path.isdir(lpath):
+    os.system('sudo rm ' + lpath + "/*")
+    os.system('sudo rm -rf ' + lpath + "/")
+    os.mkdir(lpath)
+  else:
+    os.mkdir(lpath)
+
+  os.chdir(lpath)
+  os.system('sudo ln -s ' + path + "/backups")
+  os.system('sudo ln -s ' + path + "/settings.json")
+  os.system('sudo ln -s ' + path + "/profiles.json")
+  os.chdir(path)
+  os.system('sudo cp ' + path + '/service /etc/init.d/lback')
+  os.system('sudo chkconfig --add lback')
+  os.system('sudo chkconfig lback on')
+  os.chdir(path)
+  print """
+  Installed the following commands:
+  lback (same as lback-client)
+  lback-client
+  lback-server
+  lback-profiler
+  lback-jit
+  """
