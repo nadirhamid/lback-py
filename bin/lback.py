@@ -1,5 +1,4 @@
-""" Backup tool for linux.
-This performs ehe needed functionality
+""" Backup tool for linux.  This performs ehe needed functionality
 behind this specifcation.
 
 Implementors must deciede which 
@@ -60,7 +59,7 @@ def make_lback_protobuf_descriptor(name, fields=[], enum_fields=[], containing_f
 ## UID, NAME, SIZE, VERSION, JIT, FOLDER, CONTENTS, CMD, VERSION, STATUS
 uid_field = make_lback_protobuf_field("UID", FieldDescriptor.TYPE_STRING, FieldDescriptor.CPPTYPE_STRING,1,1)
 name_field = make_lback_protobuf_field("NAME", FieldDescriptor.TYPE_STRING, FieldDescriptor.CPPTYPE_STRING,2,2)
-size_field = make_lback_protobuf_field("SIZE",  FieldDescriptor.TYPE_FLOAT, FieldDescriptor.CPPTYPE_FLOAT,3,3,0.0)
+size_field = make_lback_protobuf_field("SIZE",  FieldDescriptor.TYPE_STRING, FieldDescriptor.CPPTYPE_STRING,3,3)
 jit_field =  make_lback_protobuf_field("JIT", FieldDescriptor.TYPE_BOOL, FieldDescriptor.CPPTYPE_BOOL,4,4,False)
 folder_field = make_lback_protobuf_field("FOLDER", FieldDescriptor.TYPE_STRING, FieldDescriptor.CPPTYPE_STRING,5,5)
 contents_field = make_lback_protobuf_field("CONTENTS", FieldDescriptor.TYPE_STRING, FieldDescriptor.CPPTYPE_STRING,6,6)
@@ -234,7 +233,7 @@ class Server(object):
        
        message = recvall(c)
 
-       protobufMessage = LBackProtobuf_Message()
+       protobufMessage = LBack_Protobuf_Message()
        protobufMessage.ParseFromString(message)
        """
        what command is this?
@@ -318,6 +317,8 @@ class Server(object):
         folder = protobufMessage.FOLDER
         name =protobufMessage.NAME
         size = protobufMessage.SIZE
+        version = protobufMessage.VERSION
+        jit =protobufMessage.JIT
         c.sendall("SUCCESS")
         if not contents:
           continue
@@ -365,10 +366,11 @@ class Client(object):
     smessage.UID = uid
     smessage.FOLDER = os.path.abspath(folder)
     smessage.JIT = jit 
-    smessage.SIZE = double(size)
+    smessage.SIZE = str(size)
     smessage.VERSION  =version
     smessage.NAME = name
-    smessage.CONTENTS = contents
+    smessage.CONTENTS = contents.encode("hex").encode("utf-8")
+    print "Message passing: (FOLDER: %s, SIZE: %s, UID: %s, JIT: %s, VERSION: %s)" % (folder, str(size), str(uid), str(jit), str(version))
 
     s.sendall(smessage.SerializeToString())
     out = False
@@ -537,7 +539,7 @@ class Profiler(object):
                 
               else:
                 fc = open(bkp.get(), "r+").read()
-                client.run('BACKUP', i['folder'], uid, fc,name,size)
+                client.run(cmd='BACKUP', folder=i['folder'], uid=uid, contents=fc,name=name,size=size)
                 if client.status:
                   self.o.show("Backup Ok -- Now transferring to server")
                   
@@ -582,12 +584,27 @@ class Util(object):
           if word in (os.curdir, os.pardir, ''): continue
           path = os.path.join(path, word)
         zf.write(member, path)
-  def getFolderSize(self,p):
-    if not os.path.isfile(p) and os.path.isdir(p):
-      return
-    from functools import partial
-    prepend = partial(os.path.join, p)
-    return sum([(os.path.getsize(f) if os.path.isfile(f) else self.getFolderSize(f)) for f in map(prepend, os.listdir(p))])
+  def getFolderSize(self,p,parent=True):
+    if not os.path.isfile(p) and not os.path.isdir(p):
+      return 0
+    #from functools import partial
+    
+    totalSize = 0 
+    if os.path.isdir(p): 
+      prepend = os.path.abspath(p)
+      files = os.listdir(prepend)
+      thisFolderSize = 0 
+      for i in files:
+        if os.path.isfile(prepend+"/"+i):
+          thisFolderSize +=  float(os.path.getsize( prepend+"/"+i ))
+        else:
+          thisFolderSize += float(self.getFolderSize(prepend+"/"+i,parent=False))
+      totalSize += thisFolderSize
+     
+    if not parent:   
+      return float(thisFolderSize)
+    else:
+      return str(totalSize)
   
 class Runtime(object):
   def __init__(self, a):
@@ -857,7 +874,7 @@ class Runtime(object):
             self.o.show("Transaction ID: " + self.uid)
           else:
             fc = open(bkp.get(), 'r').read()
-            client.run('BACKUP', os.path.abspath(self.folder), self.uid, fc, self.name,self.version,self.size)
+            client.run(cmd='BACKUP', folder=os.path.abspath(self.folder), uid=self.uid, contents=fc, name=self.name,version=self.version,size=self.size)
             if client.status:
               self.o.show("Backup Ok -- Now transferring to server")
               
@@ -927,12 +944,12 @@ class Runtime(object):
             self.o.show("Restore has been successfully performed")
         else:
           self.o.show("Pinging server for restore..")
-          client.run('RESTORE', os.path.abspath(self.folder), self.ruid, '', '', self.version)
+          client.run(cmd='RESTORE', folder=os.path.abspath(self.folder), uid=self.ruid, version=self.version)
           self.o.show("Forming archive.. this can take some time")
           if client.status:
             self.o.show("Restore Retrieval Ok -- now attempting to restore")
             fp = open(LOCAL_BACKUP_DIR + self.ruid + '.zip', 'w+')
-            fp.write(client.get())
+            fp.write(client.get().decode("utf-8").decode("hex"))
             fp.close()
             
             rst = Restore(LOCAL_BACKUP_DIR + self.ruid + '.zip', self.folder, self.clean)
