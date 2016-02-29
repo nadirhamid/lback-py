@@ -1,6 +1,6 @@
 import os, os.path
 import sys
-import sys
+import shutil
 
 try:
 	from setuptools import setup
@@ -78,57 +78,58 @@ if sys.argv [1]=="install":
   bin_path = path + '/bin/'
   os.chdir(fpath)
   version = get_version()
-  if os.path.isdir("/usr/local/lback/") and version:
-    ##found current
-    print "Found current LBack moving to {0}-{1}".format("/usr/local/lback", version)
-    os.mkdir("{0}-{1}/".format("/usr/local/lback",version))
-    os.system("mv {0} {1}-{2}/".format("/usr/local/lback", "/usr/local/lback", version))
-    #files_in_current = os.listdir("/usr/local/lback")
-    #for i in files_in_current:
-    #  os.remove("/usr/local/lback/"+i)
-    #os.removedirs("/usr/local/lback/")
+  current_version_check = "{0}-{1}".format("/usr/local/lback", version)
+  if not os.path.isdir( current_version_check ):
+      if os.path.isdir("/usr/local/lback/") and version:
+       
+        ##found current
+        print "Found current LBack moving to {0}-{1}".format("/usr/local/lback", version)
+        os.mkdir("{0}-{1}/".format("/usr/local/lback",version))
+        os.system("mv {0} {1}-{2}/".format("/usr/local/lback", "/usr/local/lback", version))
+        #files_in_current = os.listdir("/usr/local/lback")
+        #for i in files_in_current:
+        #  os.remove("/usr/local/lback/"+i)
+        #os.removedirs("/usr/local/lback/")
 
 
 
   """ remove all previous files """
-  os.system('sudo rm ' + path + "/storage.db")
-  os.system('sudo rm ' + path + "/lback.py")
-  os.system('sudo rm ' + path + "/odict.py")
-  os.system('sudo rm ' + path + "/dal.py")
-  os.system('sudo rm ' + path + "/lback*")
-  os.system('sudo rm /etc/init.d/lback')
-  os.system('sudo rm ' + ffpath + "settings.json")
-  os.system('sudo rm ' + ffpath + "profiler.json")
-  os.system('sudo rm ' + ffpath + "profiler.json")
-  os.system('sudo rm ' + lpath + "settings.json")
-  os.system('sudo rm ' + lpath + "profiler.json")
-
+  rem_files = [ 
+      fpath+'/lback.py',
+      fpath+'/dal.py',
+      fpath+'/odict.py',
+      fpath+'/lbackd',
+      fpath+'/lback-client',
+      fpath+'/lback-server',
+      ffpath+'/settings.json',
+      ffpath+'/profiler.json',
+      lpath+'/settings.json',
+      ffpath+'/profiler.json'
+     '/etc/init.d/lback'
+   ]
   known_files = [
-        'lback.py',
-        'dal.py',
-        'lback',
-        'lback-server',
-        'lback-client',
-        'lback-jit',
-        'lback-profiler'
+       fpath+'/'+'lback.py',
+        fpath+'/'+'dal.py',
+        fpath+'/lback',
+        fpath+'/lback-server',
+        fpath+'/lback-client',
+        fpath+'/lback-jit',
+        fpath+'/lback-profiler'
   ]
-  for i in known_files:
-    if os.path.isfile(i):
-      os.remove(fpath + i)
+  for i in known_files + rem_files:
+    if os.path.isfile(i) or os.path.islink(i):
+      os.remove(  i )
 
-  os.system('sudo ln -s ' + path + "/storage.db")
   os.system('sudo ln -s ' + bin_path + "lback.py")
   os.system('sudo ln -s ' + bin_path + "dal.py")
   os.system('sudo ln -s ' + bin_path + "odict.py")
   os.system('sudo ln -s ' + bin_path + "lback")
   os.system('sudo ln -s ' + bin_path + "lback-client")
-  os.system('sudo ln -s ' + bin_path + "lback-client")
   os.system('sudo ln -s ' + bin_path + "lback-server")
   os.system('sudo ln -s ' + bin_path + "lback-profiler")
   os.system('sudo ln -s ' + bin_path + "lback-jit")
   if os.path.isdir(lpath):
-    os.system('sudo rm ' + lpath + "/*")
-    os.system('sudo rm -rf ' + lpath + "/")
+    shutil.rmtree(lpath)
     os.mkdir(lpath)
   else:
     os.mkdir(lpath)

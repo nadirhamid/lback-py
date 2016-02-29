@@ -4,6 +4,18 @@ LBack - a backup tool for linux
 A Simple way to do remote / local backups. Hassle free,
 using your favorite db. 
 
+Requirements
+------------------------------------------------------
+
+  + Python >= 2.7
+  + Pip for Python 2.7 
+  + MySQL
+
+Installing
+------------------------------------------------------
+
+	make  
+    	
 
 Regular Backups (Local)
 -------------------------------------------------------

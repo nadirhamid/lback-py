@@ -6,4 +6,7 @@ LinuxOpenSuseBackupTool.egg-info/dependency_links.txt
 LinuxOpenSuseBackupTool.egg-info/top_level.txt
 lback/__init__.py
 lback/core.py
+lback/dal.py
 lback/lback.py
+lback/odict.py
+lback/server.py
