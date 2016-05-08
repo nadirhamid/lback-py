@@ -76,6 +76,7 @@ if sys.argv [1]=="install":
   ffpath = '/usr/'
   path = os.getcwd()
   bin_path = path + '/bin/'
+  lback_path = path + '/lback/'
   os.chdir(fpath)
   version = get_version()
   current_version_check = "{0}-{1}".format("/usr/local/lback", version)
@@ -120,9 +121,9 @@ if sys.argv [1]=="install":
     if os.path.isfile(i) or os.path.islink(i):
       os.remove(  i )
 
-  os.system('sudo ln -s ' + bin_path + "lback.py")
-  os.system('sudo ln -s ' + bin_path + "dal.py")
-  os.system('sudo ln -s ' + bin_path + "odict.py")
+  os.system('sudo ln -s ' + lback_path + "lback.py")
+  os.system('sudo ln -s ' + lback_path + "dal.py")
+  os.system('sudo ln -s ' + lback_path + "odict.py")
   os.system('sudo ln -s ' + bin_path + "lback")
   os.system('sudo ln -s ' + bin_path + "lback-client")
   os.system('sudo ln -s ' + bin_path + "lback-server")
