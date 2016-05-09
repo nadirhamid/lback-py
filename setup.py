@@ -1,6 +1,11 @@
 import os, os.path
 import sys
 import shutil
+from lback.dal import DAL,Field
+import json
+import subprocess
+
+
 
 try:
 	from setuptools import setup
@@ -10,24 +15,32 @@ except ImportError:
 from distutils.command.build_py import build_py
 
 class buildsetup(build_py):
-    def find_package_modules(self, package, package_dir):
-        """
-        Lookup modules to be built before install. Because we
-        only use a single source distribution for Python 2 and 3,
-        we want to avoid specific modules to be built and deployed
-        on Python 2.x. By overriding this method, we filter out
-        those modules before distutils process them.
-        This is in reference to issue #123.
-        """
-        modules = build_py.find_package_modules(self, package, package_dir)
-        amended_modules = []
-        for (package_, module, module_file) in modules:
-            if sys.version_info < (3,):
-                if module in ['async_websocket', 'tulipserver']:
-                    continue
-            amended_modules.append((package_, module, module_file))
+    def run(self):
+      version = get_version()
+      cwd = os.getcwd()
+      if os.path.isdir("/usr/local/lback"):
+          settings = get_settings() 
+          db =DAL("mysql://{0}:{1}@{2}/{3}".format(  settings['db_user'], settings['db_pass'], settings['db_host'], settings['db_name'], folder="/usr/local/lback/" ))
+          if hasattr( db, settings['db_table']):
+              getattr(db, settings['db_table'] ).drop()
+          shutil.rmtree("/usr/local/lback")
 
-        return amended_modules
+      os.makedirs("/usr/local/lback")
+      os.makedirs("/usr/local/lback/backups/")
+      links = [
+            (cwd+"/lback/lback.py", "/usr/bin/lback.py"),
+            (cwd+"/lback/dal.py", "/usr/bin/dal.py"),
+            (cwd+"/lback/odict.py", "/usr/bin/odict.py"),
+            (cwd+"/bin/lback", "/usr/bin/lback"),
+            (cwd+"/bin/lback-client", "/usr/bin/lback-client"),
+            (cwd+"/bin/lback-server", "/usr/bin/lback-server"),
+            (cwd+"/settings.json", "/usr/local/lback/settings.json"),
+            (cwd+"/profiles.json", "/usr/local/lback/profiles.json")
+        ]
+      for i in links:
+         subprocess.Popen(['ln', '-s', i[0], i[1]])
+      build_py.run(self)
+
 def get_version():
   import pkg_resources
   try:
@@ -35,6 +48,13 @@ def get_version():
   except:
     return None
   return version
+
+def get_settings():
+  file = open("/usr/local/lback/settings.json", "r")
+  jsonobj = json.loads(file.read())
+  file.close()
+  return jsonobj
+   
 
 def finalizesetup():
 	pass
@@ -70,85 +90,4 @@ setup(name="LinuxOpenSuseBackupTool",
       cmdclass=dict(build_py=buildsetup))
 
 
-if sys.argv [1]=="install":
-  fpath = '/usr/bin/'
-  lpath = '/usr/local/lback/'
-  ffpath = '/usr/'
-  path = os.getcwd()
-  bin_path = path + '/bin/'
-  lback_path = path + '/lback/'
-  os.chdir(fpath)
-  version = get_version()
-  current_version_check = "{0}-{1}".format("/usr/local/lback", version)
-  if not os.path.isdir( current_version_check ):
-      if os.path.isdir("/usr/local/lback/") and version:
-       
-        ##found current
-        print "Found current LBack moving to {0}-{1}".format("/usr/local/lback", version)
-        os.mkdir("{0}-{1}/".format("/usr/local/lback",version))
-        os.system("mv {0} {1}-{2}/".format("/usr/local/lback", "/usr/local/lback", version))
-        #files_in_current = os.listdir("/usr/local/lback")
-        #for i in files_in_current:
-        #  os.remove("/usr/local/lback/"+i)
-        #os.removedirs("/usr/local/lback/")
 
-
-
-  """ remove all previous files """
-  rem_files = [ 
-      fpath+'/lback.py',
-      fpath+'/dal.py',
-      fpath+'/odict.py',
-      fpath+'/lbackd',
-      fpath+'/lback-client',
-      fpath+'/lback-server',
-      ffpath+'/settings.json',
-      ffpath+'/profiler.json',
-      lpath+'/settings.json',
-      ffpath+'/profiler.json'
-     '/etc/init.d/lback'
-   ]
-  known_files = [
-       fpath+'/'+'lback.py',
-        fpath+'/'+'dal.py',
-        fpath+'/lback',
-        fpath+'/lback-server',
-        fpath+'/lback-client',
-        fpath+'/lback-jit',
-        fpath+'/lback-profiler'
-  ]
-  for i in known_files + rem_files:
-    if os.path.isfile(i) or os.path.islink(i):
-      os.remove(  i )
-
-  os.system('sudo ln -s ' + lback_path + "lback.py")
-  os.system('sudo ln -s ' + lback_path + "dal.py")
-  os.system('sudo ln -s ' + lback_path + "odict.py")
-  os.system('sudo ln -s ' + bin_path + "lback")
-  os.system('sudo ln -s ' + bin_path + "lback-client")
-  os.system('sudo ln -s ' + bin_path + "lback-server")
-  os.system('sudo ln -s ' + bin_path + "lback-profiler")
-  os.system('sudo ln -s ' + bin_path + "lback-jit")
-  if os.path.isdir(lpath):
-    shutil.rmtree(lpath)
-    os.mkdir(lpath)
-  else:
-    os.mkdir(lpath)
-
-  os.chdir(lpath)
-  os.system('sudo ln -s ' + path + "/backups")
-  os.system('sudo ln -s ' + path + "/settings.json")
-  os.system('sudo ln -s ' + path + "/profiles.json")
-  os.chdir(path)
-  os.system('sudo cp ' + path + '/service /etc/init.d/lback')
-  os.system('sudo chkconfig --add lback')
-  os.system('sudo chkconfig lback on')
-  os.chdir(path)
-  print """
-  Installed the following commands:
-  lback (same as lback-client)
-  lback-client
-  lback-server
-  lback-profiler
-  lback-jit
-  """
