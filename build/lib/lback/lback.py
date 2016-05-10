@@ -715,7 +715,7 @@ class Runtime(object):
   try to set up the database
   """
   def propagate(self):
-    self.db = DAL(self.db_family + '://' + self.db_user + ':' + self.db_pass + '@' + self.db_host + '/' + self.db_name, pool_size=1, folder='/usr/local/lback/')
+    self.db = DAL(self.db_family + '://memory', pool_size=1, folder='/usr/local/lback/')
       
     self.db.define_table(
       self.db_table,
@@ -1068,10 +1068,7 @@ JIT SPECIFIC
     self.server_ip = settings['server_ip']
     self.server_port = settings['server_port']
     
-    if not 'db_family' in settings.keys():
-      self.db_family = 'mysql'
-    else:
-      self.db_family = settings['db_family']
+    self.db_family = 'sqlite'
         
   def _profiles(self):
     if os.path.isfile("/usr/local/lback/profiles.json"):

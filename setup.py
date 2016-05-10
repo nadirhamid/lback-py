@@ -21,9 +21,6 @@ class installsetup(install):
       cwd = os.getcwd()
       if os.path.isdir("/usr/local/lback"):
           settings = get_settings() 
-          db =DAL("mysql://{0}:{1}@{2}/{3}".format(  settings['db_user'], settings['db_pass'], settings['db_host'], settings['db_name'], folder="/usr/local/lback/" ))
-          if hasattr( db, settings['db_table']):
-              getattr(db, settings['db_table'] ).drop()
           shutil.rmtree("/usr/local/lback")
 
       os.makedirs("/usr/local/lback")

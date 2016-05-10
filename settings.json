@@ -2,10 +2,5 @@
 	"server_ip": "127.0.0.1",
 	"server_port": "4900",
 	"client_ip": "127.0.0.1",
-	"client_port": "90",
-	"db_name": "lback",
-	"db_user": "lback",
-	"db_pass": "lback_application_2016",
-	"db_host": "127.0.0.1",
-	"db_table": "backups"
+	"client_port": "90"
 }
