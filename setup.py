@@ -13,8 +13,9 @@ except ImportError:
 	from distutils.core import setup
 
 from distutils.command.build_py import build_py
+from distutils.command.install import install
 
-class buildsetup(build_py):
+class installsetup(install):
     def run(self):
       version = get_version()
       cwd = os.getcwd()
@@ -39,7 +40,7 @@ class buildsetup(build_py):
         ]
       for i in links:
          subprocess.Popen(['ln', '-s', i[0], i[1]])
-      build_py.run(self)
+      install.run(self)
 
 def get_version():
   import pkg_resources
@@ -87,7 +88,7 @@ setup(name="LinuxOpenSuseBackupTool",
           'Topic :: Internet :: WWW/HTTP :: WSGI :: Server',
           'Topic :: Software Development :: Libraries :: Python Modules'
       ],
-      cmdclass=dict(build_py=buildsetup))
+      cmdclass=dict(install=installsetup))
 
 
 
