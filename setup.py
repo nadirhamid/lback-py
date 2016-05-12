@@ -33,7 +33,8 @@ class installsetup(install):
             (cwd+"/bin/lback-client", "/usr/bin/lback-client"),
             (cwd+"/bin/lback-server", "/usr/bin/lback-server"),
             (cwd+"/settings.json", "/usr/local/lback/settings.json"),
-            (cwd+"/profiles.json", "/usr/local/lback/profiles.json")
+            (cwd+"/profiles.json", "/usr/local/lback/profiles.json"),
+            (cwd+"/db.sql", "/usr/local/lback/db.sql")
         ]
       for i in links:
          subprocess.Popen(['ln', '-s', i[0], i[1]])

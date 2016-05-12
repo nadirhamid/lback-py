@@ -208,7 +208,7 @@ def recvall(the_socket,timeout=''):
     return result
   
 class Server(object):
-  def __init__(self, port, ip, db, table):
+  def __init__(self, port, ip, db, table='backups'):
     self.status = 0
     self.ip = ip
     self.db = db
@@ -443,7 +443,7 @@ class Record(object):
 Just in time backups
 """
 class JIT(object):
-  def __init__(self, db, db_table):
+  def __init__(self, db, db_table='backups'):
     self.db = db
     self.db_table = db_table
 
@@ -485,7 +485,7 @@ class JIT(object):
 Profile based backups
 """
 class Profiler(object):
-  def __init__(self,profiles,server_ip,server_port,ip,port,db,db_table):
+  def __init__(self,profiles,server_ip,server_port,ip,port,db,db_table='backups'):
     self.profiles = profiles
     self.server_ip = server_ip
     self.server_port = server_port
@@ -613,7 +613,7 @@ class Runtime(object):
     self.db_name = ''
     self.db_pass = ''
     self.db_host = ''
-    self.db_table = ''
+    self.db_table = 'backups'
     self.db_user = ''
     self._settings()
     self._profiles()
@@ -715,7 +715,7 @@ class Runtime(object):
   try to set up the database
   """
   def propagate(self):
-    self.db = DAL(self.db_family + '://memory', pool_size=1, folder='/usr/local/lback/')
+    self.db = DAL('sqlite://db.sql')
       
     self.db.define_table(
       self.db_table,
@@ -727,7 +727,7 @@ class Runtime(object):
       Field('size'),
       Field('version'),
       Field('jit'),
-      Field('local'),
+      Field('local')
     )
 
     
@@ -790,7 +790,7 @@ class Runtime(object):
       return
       
     if not 'local' in dir(self):
-      self.isLocal = False
+      self.local = False
       if self.type == 'CLIENT':
         client = Client(self.port, self.ip, dict(ip=self.server_ip, port=self.server_port))
         self.o.show("Running on port: {0}, ip: {1}".format(self.server_port, self.server_ip))
@@ -800,7 +800,7 @@ class Runtime(object):
         server.run()
         # exit now and loop
     else:
-      self.isLocal = True
+      self.local = True
         
     if 'backup' in dir(self):
       if not 'folder' in dir(self):
@@ -824,13 +824,13 @@ class Runtime(object):
               self.version = re.sub('\d$', str(nv), v)
               
 
-          self.db[self.db_table].insert(uid=self.uid, time=time.time(), folder=os.path.abspath(self.folder), size=self.size, local=self.isLocal,name=self.name, version=self.version, jit=True if self.is_jit else False)
+          self.db[self.db_table].insert(uid=self.uid, time=time.time(), folder=os.path.abspath(self.folder), size=self.size, local=self.local,name=self.name, version=self.version, jit=True if self.is_jit else False)
           self.db.commit()
         
         
           is_success = True
           
-          if self.isLocal:
+          if self.local:
             self.o.show("Backup Ok -- Now saving to disk")
             self.o.show("Local Backup has been successfully stored")
             self.o.show("Transaction ID: " + self.uid)
@@ -897,7 +897,7 @@ class Runtime(object):
           if not os.path.isdir(self.folder):
             os.makedirs(self.folder)
           
-        if self.isLocal:
+        if self.local:
           self.o.show("Restore Ok -- Now restoring compartment")
           rst = Restore(False, self.folder, self.clean)
           rst.run(True, self.ruid)  
