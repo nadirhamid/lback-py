@@ -364,7 +364,7 @@ class Client(object):
     smessage = LBack_Protobuf_Message()
     smessage.CMD = cmd
     smessage.UID = uid
-    smessage.FOLDER = os.path.abspath(folder)
+    smessage.FOLDER = folder
     smessage.JIT = jit 
     smessage.SIZE = str(size)
     smessage.VERSION  =version
@@ -531,7 +531,7 @@ class Profiler(object):
             bkp.run()
 
             if bkp.status == 1:
-              self.db[self.db_table].insert(uid=uid, time=time.time(), folder=os.path.abspath(i['folder']), local=i['local'],name=name,size=size)
+              self.db[self.db_table].insert(uid=uid, time=time.time(), folder=i['folder'], local=i['local'],name=name,size=size)
               self.db.commit()
               if i['local']:
                 self.o.show("Backup Ok -- Now saving to disk")
@@ -559,18 +559,23 @@ class Profiler(object):
     
 class Util(object):
   def unzip(self, source_filename, dest_dir):
+    output = Output()
     with zipfile.ZipFile(source_filename) as zf:
       for member in zf.infolist():
         # Path traversal defense copied from
         # http://hg.python.org/cpython/file/tip/Lib/http/server.py#l789
-        words = member.filename.split('/')
-        path = dest_dir
-        for word in words[:-1]:
-          drive, word = os.path.splitdrive(word)
-          head, word = os.path.split(word)
-          if word in (os.curdir, os.pardir, ''): continue
-          path = os.path.join(path, word)
-        zf.extract(member, os.path.relpath(path))
+        try:
+            words = member.filename.split('/')
+            path = dest_dir
+            for word in words[:-1]:
+              drive, word = os.path.splitdrive(word)
+              head, word = os.path.split(word)
+              if word in (os.curdir, os.pardir, ''): continue
+              path = os.path.join(path, word)
+            zf.extract(member, os.path.relpath(path))
+        except Exception, e:
+            output.show("Unable to extract {}".format(member.filename))
+          
   def zip(self, source_filename, dest_dir):
     with zipfile.ZipFile(source_filename) as zf:
       for member in zf.infolist():
@@ -661,7 +666,7 @@ class Runtime(object):
       if i in ['-l', '--local']:
         self.local = True
       if i in ['-f', '--folder']:
-        self.folder = j
+        self.folder = os.path.abspath(j)+"/"
       if i in ['-li', '--list']:
         self.list = True
       if i in ['-p', '--profiler']:
@@ -715,7 +720,7 @@ class Runtime(object):
   try to set up the database
   """
   def propagate(self):
-    self.db = DAL('sqlite://db.sql')
+    self.db = DAL('sqlite://db.sql', folder='/usr/local/lback/')
       
     self.db.define_table(
       self.db_table,
@@ -727,7 +732,8 @@ class Runtime(object):
       Field('size'),
       Field('version'),
       Field('jit'),
-      Field('local')
+      Field('local'),
+      migrate=True
     )
 
     
@@ -824,7 +830,7 @@ class Runtime(object):
               self.version = re.sub('\d$', str(nv), v)
               
 
-          self.db[self.db_table].insert(uid=self.uid, time=time.time(), folder=os.path.abspath(self.folder), size=self.size, local=self.local,name=self.name, version=self.version, jit=True if self.is_jit else False)
+          self.db[self.db_table].insert(uid=self.uid, time=time.time(), folder=self.folder, size=self.size, local=self.local,name=self.name, version=self.version, jit=True if self.is_jit else False)
           self.db.commit()
         
         
@@ -836,7 +842,7 @@ class Runtime(object):
             self.o.show("Transaction ID: " + self.uid)
           else:
             fc = open(bkp.get(), 'r').read()
-            client.run(cmd='BACKUP', folder=os.path.abspath(self.folder), uid=self.uid, contents=fc, name=self.name,version=self.version,size=self.size)
+            client.run(cmd='BACKUP', folder=self.folder, uid=self.uid, contents=fc, name=self.name,version=self.version,size=self.size)
             if client.status:
               self.o.show("Backup Ok -- Now transferring to server")
               
@@ -889,8 +895,8 @@ class Runtime(object):
         self.ruid = r['uid']
 
         ## restore an s3 instance
-        if s3 in dir(self) and self.s3:
-          pass
+        #if s3 in dir(self) and self.s3:
+        #  pass
         
         if self.clean:
           self.o.show("Cleaning directory..")
@@ -906,7 +912,7 @@ class Runtime(object):
             self.o.show("Restore has been successfully performed")
         else:
           self.o.show("Pinging server for restore..")
-          client.run(cmd='RESTORE', folder=os.path.abspath(self.folder), uid=self.ruid, version=self.version)
+          client.run(cmd='RESTORE', folder=self.folder, uid=self.ruid, version=self.version)
           self.o.show("Forming archive.. this can take some time")
           if client.status:
             self.o.show("Restore Retrieval Ok -- now attempting to restore")

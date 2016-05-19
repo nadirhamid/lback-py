@@ -19,8 +19,11 @@ class installsetup(install):
     def run(self):
       version = get_version()
       cwd = os.getcwd()
+      os.remove(cwd+"/db.sql")
+      db = open(cwd+"/db.sql","w+")
+      db.close()
+     
       if os.path.isdir("/usr/local/lback"):
-          settings = get_settings() 
           shutil.rmtree("/usr/local/lback")
 
       os.makedirs("/usr/local/lback")
