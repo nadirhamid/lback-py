@@ -1,6 +1,9 @@
 LBack - a backup tool for linux
 ===============================
 
+![alt tag](http://infinitet3ch.com/assets/lback-logo.jpg)
+
+
 A Simple way to do remote / local backups. Hassle free,
 using your favorite db. 
 
