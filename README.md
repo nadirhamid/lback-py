@@ -84,7 +84,7 @@ Benchmark results:
 
 108 megabytes (transfering XUL SDK)
 took ~ 3 minutes to archive and delivery
-another 3
+another 3 minutes
 
 
 Generating a list of backups:
