@@ -104,9 +104,9 @@ def check_for_id(id_initial, db):
 
 def throw_id_error_if_needed( id ):
    if id == 0:
-      raise "Error record was not found"
+      raise Exception("Error record was not found")
    elif id == -1:
-      raise "Please provide a short hash (5 characters) or long (40 characters)"
+      raise Exception("Please provide a short hash (5 characters) or long (40 characters)")
    return id
 
 
