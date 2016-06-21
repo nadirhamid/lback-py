@@ -28,6 +28,7 @@ import glob
 import time
 import json
 import uuid
+import hashlib
 import sys
 import os
 import re
@@ -84,6 +85,37 @@ class LBack_Protobuf_Message(Message):
   __metaclass__ = GeneratedProtocolMessageType 
   DESCRIPTOR  = lback_msg_descriptor
 
+## Either short ID (7 char
+def check_for_id(id_initial, db):
+   id = -1
+   if  len(id_initial) == 7:
+	chunks=db(db.backups.uid.like(id_initial+"%")).select().first()
+	if chunks:
+	    id=chunks.uid
+	else:
+	    id=0
+   elif len(id_initial) == 40:
+	 chunks = db(db.backusp.uid==id_initial).select().first()
+	 if chunks:
+	      id=chunks.uid
+	 else:
+	      id=0
+   return throw_id_error_if_needed( id )
+
+def throw_id_error_if_needed( id ):
+   if id == 0:
+      raise "Error record was not found"
+   elif id == -1:
+      raise "Please provide a short hash (5 characters) or long (40 characters)"
+   return id
+
+
+	 
+ 
+  
+
+
+
 
 
 
@@ -131,11 +163,11 @@ class Backup(object):
     return LOCAL_BACKUP_DIR + self.record_id + '.zip'
     
   def pack(self):
-    print "Files have been gathered. Forming archive.."
+    Output.show( "Files have been gathered. Forming archive.." )
     for i in self.things:
       self.zip.write(i, os.path.relpath(i, self.folder))
-    print "Files found: "
-    print self.things
+    Output.show( "Files found: ")
+    Output.show(self.things)
     #Util().zip(self.folder, self.get())
     self.zip.close()
     self.status = 1
@@ -151,7 +183,7 @@ class Backup(object):
     return prefix + anchor
     
   def _file(self, anchor, prefix=''):
-    print "added => " + prefix + anchor
+    Output.show("added => " + prefix + anchor)
     self.things.append(prefix + anchor)
     
     return prefix + anchor
@@ -228,8 +260,8 @@ class Server(object):
     s.listen(1)                 # Now wait for client connection.
     while True:
        c, addr = s.accept()     # Establish connection with client.
-       #print connections
-       print 'Got connection from', addr
+       #Output.show(connections
+       Output.show('Got connection from', addr)
        
        message = recvall(c)
 
@@ -239,7 +271,7 @@ class Server(object):
        what command is this?
        """
        if protobufMessage.CMD == "RESTORE":
-        print "Running 'RESTORE'"
+        Output.show("Running 'RESTORE'")
         uid = False
         uid = protobufMessage.UID
 
@@ -263,7 +295,7 @@ class Server(object):
                  (self.db[self.db_table].folder == uid)) &
                  (self.db[self.db_table].version == version)).select().first()
         if not r:
-          print "SERVER couldn\'t find backup.."
+          Output.show("SERVER couldn\'t find backup..")
           continue
         else:
           uid = row.uid
@@ -293,25 +325,25 @@ class Server(object):
               
             select.select([], [c], [])
           
-        print "Restore backup fetched."
-        print "Sending to client.."
-        print "Transaction ID: " + uid
+        Output.show("Restore backup fetched.")
+        Output.show("Sending to client..")
+        Output.show("Transaction ID: " + uid)
         c.close()
     
        
        elif protobufMessage.CMD == "DELETE":
-         print "Running 'DELETE'"
+         Output.show("Running 'DELETE'")
          uid = protobufMessage.UID
          
          status = os.remove(LOCAL_BACKUP_DIR +  uid + ".zip") 
          if not os.path.isfile(LOCAL_BACKUP_DIR + uid + ".zip"):
-           print "Backup deleted successfull.."
+           Output.show("Backup deleted successfull..")
            self.db(self.db[self.db_table].uid == uid).delete() 
          else:
-           print "Could not delete the backup device or resource busy"
+           Output.show("Could not delete the backup device or resource busy")
           
        elif protobufMessage.CMD == "BACKUP":
-        print "Running 'BACKUP'"
+        Output.show("Running 'BACKUP'")
         uid = protobufMessage.UID
         contents = protobufMessage.CONTENTS
         folder = protobufMessage.FOLDER
@@ -331,8 +363,8 @@ class Server(object):
           self.db[self.db_table].insert(uid=uid, time=time.time(), folder=folder, size=size, local=False, name=name, jit=True, version=version)
           self.db.commit()
           c.sendall("SUCCESS")
-          print "Backup complete."
-          print "Transaction ID: " + uid
+          Output.show("Backup complete.") 
+          Output.show("Transaction ID: " + uid)
           
         c.close()
        #c.send('Thank you for connecting')
@@ -344,12 +376,16 @@ class Server(object):
 class Output(object):
   def __init__(self):
     pass
-  def show(self,msg,times=0):
-    if times == 0:
-      print(msg)
-    else:
-      print(msg + "\n" * times)
-  
+  @staticmethod
+  def show(*args,**kwargs):
+     show_tag=False if 'tag'in kwargs.keys() and not kwargs['tag'] else True
+     if show_tag:
+         for i in args:
+	     print "LBACK: {0}".format( i )
+     else:
+	 for i in args:
+	     print i
+      
 class Client(object):
   def __init__(self, ip, port, server=dict()):
     self.status = 0
@@ -370,7 +406,7 @@ class Client(object):
     smessage.VERSION  =version
     smessage.NAME = name
     smessage.CONTENTS = contents.encode("hex").encode("utf-8")
-    print "Message passing: (FOLDER: %s, SIZE: %s, UID: %s, JIT: %s, VERSION: %s)" % (folder, str(size), str(uid), str(jit), str(version))
+    Output.show("Message passing: (FOLDER: %s, SIZE: %s, UID: %s, JIT: %s, VERSION: %s)" % (folder, str(size), str(uid), str(jit), str(version)))
 
     s.sendall(smessage.SerializeToString())
     out = False
@@ -394,7 +430,7 @@ class Client(object):
             self.m += m
           
         except socket.error, e:
-          print "??"
+          Output.show("??")
           if e.errno != errno.EAGAIN:
             raise e
             
@@ -436,7 +472,7 @@ class Record(object):
   def __init__(self):
     pass
   def generate(self):
-    return uuid.uuid4().__str__()
+    return hashlib.sha1(str(time.time())).hexdigest()
 
 
 """
@@ -468,7 +504,7 @@ class JIT(object):
         
         for f in b.things:
           if os.path.getmtime(f) > initial_time:
-            print "Running JIT Backup file was edited.."
+            Output.show("Running JIT Backup file was edited..")
             """ time for a backup """
             os.chdir(cpath)
             bkp = Backup(uid, folder)
@@ -493,7 +529,6 @@ class Profiler(object):
     self.port = port
     self.db = db
     self.db_table = db_table
-    self.o = Output()
   def run(self):
     client = Client(self.port, self.ip, dict(ip=self.server_ip, port=self.server_port))
     
@@ -503,8 +538,8 @@ class Profiler(object):
         if not os.path.isdir(i['folder']):
           continue
          
-        print "Reading scheduled backup" 
-        print i.__str__()
+        Output.show("Reading scheduled backup")
+        Output.show(i.__str__())
         size = str(Util().getFolderSize(i['folder']))
         name = "N/A"
         if 'name' in i.keys():
@@ -534,22 +569,22 @@ class Profiler(object):
               self.db[self.db_table].insert(uid=uid, time=time.time(), folder=i['folder'], local=i['local'],name=name,size=size)
               self.db.commit()
               if i['local']:
-                self.o.show("Backup Ok -- Now saving to disk")
-                self.o.show("Local Backup has been successfully stored")
+                Output.show("Backup Ok -- Now saving to disk")
+                Output.show("Local Backup has been successfully stored")
                 
               else:
                 fc = open(bkp.get(), "r+").read()
                 client.run(cmd='BACKUP', folder=i['folder'], uid=uid, contents=fc,name=name,size=size)
                 if client.status:
-                  self.o.show("Backup Ok -- Now transferring to server")
+                  Output.show("Backup Ok -- Now transferring to server")
                   
                   fp = client.get()
                   if len(re.findall("SUCCESS", fp)) > 0:
-                    self.o.show("Remote Backup has been successfully transferred")
+                    Output.show("Remote Backup has been successfully transferred")
                     
                     os.remove(bkp.get())
                   else:
-                    self.o.show("Something went wrong on the server.. couldnt back that folder. Reverting changes")
+                    Output.show("Something went wrong on the server.. couldnt back that folder. Reverting changes")
                 else:
                   pass
             else:
@@ -559,7 +594,6 @@ class Profiler(object):
     
 class Util(object):
   def unzip(self, source_filename, dest_dir):
-    output = Output()
     with zipfile.ZipFile(source_filename) as zf:
       for member in zf.infolist():
         # Path traversal defense copied from
@@ -574,7 +608,7 @@ class Util(object):
               path = os.path.join(path, word)
             zf.extract(member, os.path.relpath(path))
         except Exception, e:
-            output.show("Unable to extract {}".format(member.filename))
+            Output.show("Unable to extract {}".format(member.filename))
           
   def zip(self, source_filename, dest_dir):
     with zipfile.ZipFile(source_filename) as zf:
@@ -624,7 +658,6 @@ class Runtime(object):
     self._profiles()
     self.propagate()
     self.uid = Record().generate()
-    self.o = Output()
     self.type = 'CLIENT'
     self.help = 0
     self.clean = 0
@@ -714,7 +747,7 @@ class Runtime(object):
     if not self.has_version and 'restore' in dir(self):
       self.version = "latest" 
 
-    self.o.show("Running in {0} mode".format(self.type))
+    Output.show("Running in {0} mode".format(self.type))
     self.perform()
   """
   try to set up the database
@@ -741,19 +774,19 @@ class Runtime(object):
     is_success = False
 
     if 'settings' in dir(self):
-      self.o.show('Opening settings') 
+      Output.show('Opening settings') 
       os.system('vim /usr/local/lback/settings.json')
 
     if 'graceful' in dir(self):
       """ TODO add graceful shutdown """
-      self.o.show("Stopping server..")
+      Output.show("Stopping server..")
       os.system("pkill -f 'python ./lback.py --server'")
       os.system("pkill -f 'python /usr/bin/lback.py --server'")
       exit()
       return
 
     if 'stop' in dir(self): 
-      self.o.show("Stopping server..")
+      Output.show("Stopping server..")
 
       os.system("pkill -f 'python ./lback.py --server'")
       os.system("pkill -f 'python /usr/bin/lback.py --server'")
@@ -761,11 +794,11 @@ class Runtime(object):
       return
 
     if 'restart' in dir(self):
-      self.o.show("Restarting server..")
+      Output.show("Restarting server..")
 
       os.system("pkill -f 'python ./lback.py --server'")
       os.system("pkill -f 'python /usr/bin/lback.py --server'")
-      self.o.show("Started new instance..")
+      Output.show("Started new instance..")
 
       time.sleep(1)
       os.system("lback-server --start")
@@ -773,11 +806,11 @@ class Runtime(object):
       return
     
     if 'status' in dir(self):
-      self.o.show("Status of SERVER:")
+      Output.show("Status of SERVER:")
       return
 
     if 'stop_profiler' in dir(self):
-      self.o.show("Stopping profiler..")
+      Output.show("Stopping profiler..")
       os.system("pkill -f 'python ./lback.py --profiler'")
       os.system("pkill -f 'python /usr/bin/lback.py --profiler'")
       return
@@ -790,7 +823,7 @@ class Runtime(object):
 
 
     if 'stop-jit' in dir(self):
-      self.o.show("Stopping JIT instance..")
+      Output.show("Stopping JIT instance..")
       os.system("pkill -f 'python ./lback.py --jit'")
       os.system("pkill -f 'python /usr/bin/lback.py --profiler'")
       return
@@ -799,10 +832,10 @@ class Runtime(object):
       self.local = False
       if self.type == 'CLIENT':
         client = Client(self.port, self.ip, dict(ip=self.server_ip, port=self.server_port))
-        self.o.show("Running on port: {0}, ip: {1}".format(self.server_port, self.server_ip))
+        Output.show("Running on port: {0}, ip: {1}".format(self.server_port, self.server_ip))
       else:
         server = Server(self.server_port, self.server_ip, self.db, self.db_table)
-        self.o.show("Running on port: {0}, ip: {1}".format(self.server_port, self.server_ip))
+        Output.show("Running on port: {0}, ip: {1}".format(self.server_port, self.server_ip))
         server.run()
         # exit now and loop
     else:
@@ -812,7 +845,7 @@ class Runtime(object):
       if not 'folder' in dir(self):
         pass
       else:
-        self.o.show("Gathering files.. this can take awhile")
+        Output.show("Gathering files.. this can take awhile")
         bkp = Backup(self.uid, self.folder)
         bkp.run()
         
@@ -837,22 +870,22 @@ class Runtime(object):
           is_success = True
           
           if self.local:
-            self.o.show("Backup Ok -- Now saving to disk")
-            self.o.show("Local Backup has been successfully stored")
-            self.o.show("Transaction ID: " + self.uid)
+            Output.show("Backup Ok -- Now saving to disk")
+            Output.show("Local Backup has been successfully stored")
+            Output.show("Transaction ID: " + self.uid)
           else:
             fc = open(bkp.get(), 'r').read()
             client.run(cmd='BACKUP', folder=self.folder, uid=self.uid, contents=fc, name=self.name,version=self.version,size=self.size)
             if client.status:
-              self.o.show("Backup Ok -- Now transferring to server")
+              Output.show("Backup Ok -- Now transferring to server")
               
               fp = client.get()
               if len(re.findall("SUCCESS", fp)) > 0:
-                self.o.show("Remote Backup has been successfully transferred")
-                self.o.show("Transaction ID: " + self.uid)
+                Output.show("Remote Backup has been successfully transferred")
+                Output.show("Transaction ID: " + self.uid)
                 os.remove(bkp.get())
               else:
-                self.o.show("Something went wrong on the server.. couldnt back that folder. Reverting changes")
+                Output.show("Something went wrong on the server.. couldnt back that folder. Reverting changes")
             else:
               pass
         else:
@@ -861,79 +894,81 @@ class Runtime(object):
     if 'restore' in dir(self):
       if 'id' in dir(self):
 
-        if not self.has_version:
-          r = self.db((self.db[self.db_table].uid == self.id)  | \
-                      (self.db[self.db_table].name == self.id) | \
-                (self.db[self.db_table].folder == self.id)).select().last()
+	id = check_for_id( self.id, self.db)
+	if not self.has_version:
+	  r = self.db((self.db[self.db_table].uid == id)  | \
+		      (self.db[self.db_table].name == id) | \
+		(self.db[self.db_table].folder == id)).select().last()
 
   
-        else:
+	else:
 
-          if self.version == "latest":
-            r = self.db((self.db[self.db_table].uid == self.id)  | \
-                      (self.db[self.db_table].name == self.id) | \
-                (self.db[self.db_table].folder == self.id)).select().last()
+	  if self.version == "latest":
+	    r = self.db((self.db[self.db_table].uid == id)  | \
+		      (self.db[self.db_table].name == id) | \
+		(self.db[self.db_table].folder == id)).select().last()
 
 
-          elif self.version.lower() == "oldest":
-            r = self.db((self.db[self.db_table].uid == self.id)  | \
-                      (self.db[self.db_table].name == self.id) | \
-                (self.db[self.db_table].folder == self.id)).select().first()
+	  elif self.version.lower() == "oldest":
+	    r = self.db((self.db[self.db_table].uid == id)  | \
+		      (self.db[self.db_table].name == id) | \
+		(self.db[self.db_table].folder == id)).select().first()
 
-          else:
-            r = self.db(((self.db[self.db_table].uid == self.id)  | \
-                   (self.db[self.db_table].name == self.id) | \
-                   (self.db[self.db_table].folder == self.id)) \
-                 & (self.db[self.db_table].version == self.version)).select().first()
+	  else:
+	    r = self.db(((self.db[self.db_table].uid == id)  | \
+		   (self.db[self.db_table].name == id) | \
+		   (self.db[self.db_table].folder == id)) \
+		 & (self.db[self.db_table].version == self.version)).select().first()
 
-        if not r:
-          self.o.show("ERROR: Backup not found.")
-          return
-          
-        self.folder = r['folder']
-        self.local = r['local']
-        self.ruid = r['uid']
+	
+	if not r:
+	  Output.show("ERROR: Backup not found.")
+	  return
+	  
+	self.folder = r['folder']
+	self.local = r['local']
+	self.ruid = r['uid']
 
-        ## restore an s3 instance
-        #if s3 in dir(self) and self.s3:
-        #  pass
-        
-        if self.clean:
-          self.o.show("Cleaning directory..")
-          if not os.path.isdir(self.folder):
-            os.makedirs(self.folder)
-          
-        if self.local:
-          self.o.show("Restore Ok -- Now restoring compartment")
-          rst = Restore(False, self.folder, self.clean)
-          rst.run(True, self.ruid)  
-          
-          if rst.status:
-            self.o.show("Restore has been successfully performed")
-        else:
-          self.o.show("Pinging server for restore..")
-          client.run(cmd='RESTORE', folder=self.folder, uid=self.ruid, version=self.version)
-          self.o.show("Forming archive.. this can take some time")
-          if client.status:
-            self.o.show("Restore Retrieval Ok -- now attempting to restore")
-            fp = open(LOCAL_BACKUP_DIR + self.ruid + '.zip', 'w+')
-            fp.write(client.get().decode("utf-8").decode("hex"))
-            fp.close()
-            
-            rst = Restore(LOCAL_BACKUP_DIR + self.ruid + '.zip', self.folder, self.clean)
-            rst.run(True, self.ruid)
-            
-            if rst.status:
-              self.o.show("Restore Successful")
-              
+	## restore an s3 instance
+	#if s3 in dir(self) and self.s3:
+	#  pass
+	
+	if self.clean:
+	  Output.show("Cleaning directory..")
+	  if not os.path.isdir(self.folder):
+	    os.makedirs(self.folder)
+	  
+	if self.local:
+	  Output.show("Restore Ok -- Now restoring compartment")
+	  rst = Restore(False, self.folder, self.clean)
+	  rst.run(True, self.ruid)  
+	  
+	  if rst.status:
+	    Output.show("Restore has been successfully performed")
+	else:
+	  Output.show("Pinging server for restore..")
+	  client.run(cmd='RESTORE', folder=self.folder, uid=self.ruid, version=self.version)
+	  Output.show("Forming archive.. this can take some time")
+	  if client.status:
+	    Output.show("Restore Retrieval Ok -- now attempting to restore")
+	    fp = open(LOCAL_BACKUP_DIR + self.ruid + '.zip', 'w+')
+	    fp.write(client.get().decode("utf-8").decode("hex"))
+	    fp.close()
+	    
+	    rst = Restore(LOCAL_BACKUP_DIR + self.ruid + '.zip', self.folder, self.clean)
+	    rst.run(True, self.ruid)
+	    
+	    if rst.status:
+	      Output.show("Restore Successful")
       else:
-        pass
+	  Output.show("Please provide an ID")
 
     if 'jit' in dir(self):
       if 'id' in dir(self):
-        jit = JIT(self.db, self.db_table).check(self.id)
+	id = check_for_id(self.id,self.db)
+        jit = JIT(self.db, self.db_table).check(id)
       else:
-        self.o.show("Starting a JIT instance on this backup")
+        Output.show("Starting a JIT instance on this backup")
         os.system("lback-jit --id '{0}' > /dev/null 2>&1".format(self.uid))
 
 
@@ -943,35 +978,36 @@ class Runtime(object):
     if 'remove' in dir(self) and is_success:
       if 'folder' in dir(self):
         shutil.rmtree(self.folder)
-        self.o.show("Directory successfully deleted..")
+        Output.show("Directory successfully deleted..")
     if 'delete' in dir(self):
       client = Client(self.port, self.ip, dict(ip=self.ip,port=self.port))
       if 'id' in dir(self):
-        row =self.db(self.db[self.db_table].uid == self.id).select().first()
+	id = check_for_id(self.id,self.db)
+        row =self.db(self.db[self.db_table].uid == id).select().first()
         
         if row:
-          print "Removing backup: " + row.name
+          Output.show("Removing backup: " + row.name)
      
           if not row.local: 
             client.run("DELETE",  uid=row.uid)
-            print client.m
+            Output.show(client.m)
           else:
             os.remove(LOCAL_BACKUP_DIR + row.uid+".zip")
             if not os.path.isfile(LOCAL_BACKUP_DIR +  row.uid + ".zip"):
-              print "Removed backup successfully"
+              Output.show("Removed backup successfully")
             else:
-              print "Could not delete backup device or resource busy"
+              Output.show("Could not delete backup device or resource busy")
 
-          self.db(self.db[self.db_table].uid == self.id).delete()
+          self.db(self.db[self.db_table].uid == id).delete()
         else:
           row = self.db(self.db[self.db_table].folder == self.folder).select()
           if len(row) > 0:
-            print "There are multiple backups with: " + self.folder
+            Output.show("There are multiple backups with: " + self.folder)
             counter = 1
             counterOfBackups= dict()
             for i in row:
-              print "Press " +counter +  " to delete: "  
-              print i.as_dict()
+              Output.show("Press " +counter +  " to delete: " )
+              Output.show(i.as_dict())
               counterOfBackups[counter] =i.uid
               counter += 1
             numberSelected = ""
@@ -980,23 +1016,23 @@ class Runtime(object):
               if numberSelected >0  and numberSelected < len(counterOfBackups):
                 thisBackup =counterOfBackups[numberSelected]
                 theBackup = self.db(self.db[self.db_table].uid == thisBackup).select().first()
-                print "removing: " + theBackup.name 
+                Output.show("removing: " + theBackup.name)
                 if not theBackup.local:
                   client.run("DELETE",uid=theBackup.uid) 
-                  print client.m
+                  Output.show(client.m)
                 else:
       
                   os.remove(LOCAL_BACKUP_DIR +theBackup.uid + ".zip")
                   if not os.path.isfile(LOCAL_BACKUP_DIR +   theBackup.uid + ".zip"):
-                    print "Removed the backup successfully"
+                    Output.show("Removed the backup successfully")
                   else:
-                    print "Could not delete the backup device or resource is busy"
+                    Output.show("Could not delete the backup device or resource is busy")
     
                 self.db(self.db[self.db_table].uid == thisBackup).delete()
-                print "removed this backup successfully"
+                Output.show("removed this backup successfully")
               else:
-                print "not a valid number please press one of: " + ",".join(counterOfBackups.keys())
-              print "Press QUIT to exit or another number to delete more"
+                Output.show("not a valid number please press one of: " + ",".join(counterOfBackups.keys()))
+              Output.show("Press QUIT to exit or another number to delete more")
 
           elif len(row) == 1:
             row = row.first()   
@@ -1005,23 +1041,23 @@ class Runtime(object):
             else:
               os.remove(LOCAL_BACKUP_DIR + row.uid +".zip")
               if not os.path.isfile(LOCAL_BACKUP_DIR +  row.uid + ".zip"):
-                print "Backup removed successfully"
+                Output.show("Backup removed successfully" )
               else:
-                print "Could not remove the backup" 
+                Output.show("Could not remove the backup" )
             
             self.db(self.db[self.db_table].folder == self.folder).delete()
-            print "removed this backup successfully "
+            Output.show("removed this backup successfully ")
           else: 
-            print "Could not find this backup"
+            Output.show("Could not find this backup")
       
     if 'list' in dir(self):
       rows = self.db(self.db[self.db_table].time > 0).select().as_list()
-      self.o.show("Full list of stored backups")
+      Output.show("Full list of stored backups")
       for i in rows:
-        print i
+        Output.show(i)
   
   def _help(self):
-    print """
+    Output.show("""
 usage: lback [options] required_input required_input2
 options:
 -c, --client     Run a command as a client (required)
@@ -1056,7 +1092,7 @@ PROFILER SPECIFIC
 JIT SPECIFIC
 --st, --start starts a JIT instance
 --stop        Stop the JIT instance
-    """
+    """, tag=False)
   
   def try_hard_to_find(self):
     pass
