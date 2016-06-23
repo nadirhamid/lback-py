@@ -59,8 +59,9 @@ OR equivalently:
 
 ```lback-server```
 
-"this will start the program in server mode and listen to any
-connections"
+
+this will start the program in server mode and listen to any
+connections
 
 IMPORTANT: For the client, a running server 'must' be set up for remote backups.
 You can set this in "settings.json". "server_ip" and "server_port"
