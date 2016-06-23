@@ -57,6 +57,13 @@ Use with:
 0.9.0 
 - Testing, updates and version improvements,
   + All DB access is now SQLite
+
+0.9.1
+- Add short hash ids
+- change id format for SHA-1
+- deprecate profiler
+
+
    
 
 

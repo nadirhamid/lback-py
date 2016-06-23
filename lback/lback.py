@@ -273,11 +273,9 @@ class Server(object):
        if protobufMessage.CMD == "RESTORE":
         Output.show("Running 'RESTORE'")
         uid = False
-        uid = protobufMessage.UID
+        uid = check_for_id(protobufMessage.UID,self.db)
 
         version = protobufMessage.VERSION
-        if not uid:
-          continue
 
         if version.lower() == 'latest':
           r = self.db(((self.db[self.db_table].uid == uid) | 

@@ -25,7 +25,7 @@ Regular Backups (Local)
 
 to run a local backup you can use:
 
-lback --client --local --backup --folder "/folder/"
+```lback --client --local --backup --folder "/folder/"```
 
 this will instruct the program to backup the folder/" locally
 and when done send a success message telling you it is complete.
@@ -37,7 +37,13 @@ to restore a folder having backed it up, you need
 to have its id. Which can be found in the database or
 whenever a transaction is complete. For example:
 
-lback --client --local --restore --id "b6bbd382-337b-4bcf-a1b5-017f8c8d7a9c"
+```lback --client --local --restore --id "cb73eb0155af5a3da3bb4a63646b40201ab650c4"```
+
+OR short ids
+
+```lback --local --restore --id "cb73eb0"```
+
+
 
 this will fully restore this archive back to its initial
 state. Should it result in any error, it will throw a warning
@@ -47,11 +53,11 @@ REMOTE backups:
 
 To start a server. You may use:
 
-lback --server
+```lback --server```
 
 OR equivalently:
 
-lback-server
+```lback-server```
 
 "this will start the program in server mode and listen to any
 connections"
@@ -61,9 +67,11 @@ You can set this in "settings.json". "server_ip" and "server_port"
 the client will attempt to communicate on this tcip channel.
 The commands for a restore and backup are analagous to local. For example:
 
-lback --client --remote --backup --folder "/folder/"
+```lback --client --remote --backup --folder "/folder/"```
 
-lback --client --remote --restore --id "b6bbd382-337b-4bcf-a1b5-017f8c8d7a9c"
+```lback --client --remote --restore --id "cb73eb0155af5a3da3bb4a63646b40201ab650c4"```
+
+
 
 When done successfully, 
 database transactions kept should be similar on both the client and server.
@@ -91,20 +99,4 @@ Generating a list of backups:
 
 To fetch all backups to date, you can use:
 
-lback --list
-
-
-Profiler (experimental):
--------------------------------------------------------------
-
-The profiler is a way to
-run timely backups. In this directory you will find "profiles.json"
-it has one profile with a unix timestamp. The timestamp is
-when the backup will be ran. Profiler is a daemon and can be run
-with the following command 
-
-lback --profiler
-
-For more:
-
-lback --help
+```lback --list```
