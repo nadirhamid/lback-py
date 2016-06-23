@@ -9,15 +9,18 @@ using your favorite db.
 
 Requirements
 ------------------------------------------------------
-
-  + Python >= 2.7
-  + Pip for Python 2.7 
-  + MySQL
+```
++ Python >= 2.7
++ Pip for Python 2.7 
++ MySQL
+```
 
 Installing
 ------------------------------------------------------
 
-	make  
+```
+make  
+```
     	
 
 Regular Backups (Local)
@@ -25,7 +28,9 @@ Regular Backups (Local)
 
 to run a local backup you can use:
 
-```lback --client --local --backup --folder "/folder/"```
+```
+lback --client --local --backup --folder "/folder/"
+```
 
 this will instruct the program to backup the folder/" locally
 and when done send a success message telling you it is complete.
@@ -37,11 +42,15 @@ to restore a folder having backed it up, you need
 to have its id. Which can be found in the database or
 whenever a transaction is complete. For example:
 
-```lback --client --local --restore --id "cb73eb0155af5a3da3bb4a63646b40201ab650c4"```
+```
+lback --client --local --restore --id "cb73eb0155af5a3da3bb4a63646b40201ab650c4"
+```
 
 OR short ids
 
-```lback --local --restore --id "cb73eb0"```
+```
+lback --local --restore --id "cb73eb0"
+```
 
 
 
@@ -53,11 +62,15 @@ REMOTE backups:
 
 To start a server. You may use:
 
-```lback --server```
+```
+lback --server
+```
 
 OR equivalently:
 
-```lback-server```
+```
+lback-server
+```
 
 
 this will start the program in server mode and listen to any
@@ -68,9 +81,13 @@ You can set this in "settings.json". "server_ip" and "server_port"
 the client will attempt to communicate on this tcip channel.
 The commands for a restore and backup are analagous to local. For example:
 
-```lback --client --remote --backup --folder "/folder/"```
+```
+lback --client --remote --backup --folder "/folder/"
+```
 
-```lback --client --remote --restore --id "cb73eb0155af5a3da3bb4a63646b40201ab650c4"```
+```
+lback --client --remote --restore --id "cb73eb0155af5a3da3bb4a63646b40201ab650c4"
+```
 
 
 
@@ -100,4 +117,6 @@ Generating a list of backups:
 
 To fetch all backups to date, you can use:
 
-```lback --list```
+```
+lback --list
+```
