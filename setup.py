@@ -1,7 +1,7 @@
 import os, os.path
 import sys
 import shutil
-from lback.dal import DAL,Field
+from lback.lib.dal import DAL,Field
 import json
 import subprocess
 
@@ -29,7 +29,7 @@ class installsetup(install):
       os.makedirs("/usr/local/lback")
       os.makedirs("/usr/local/lback/backups/")
       links = [
-            (cwd+"/lback/lback.py", "/usr/bin/lback.py"),
+            (cwd+"/lback/main.py", "/usr/bin/lback.py"),
             (cwd+"/lback/dal.py", "/usr/bin/dal.py"),
             (cwd+"/lback/odict.py", "/usr/bin/odict.py"),
             (cwd+"/bin/lback", "/usr/bin/lback"),
@@ -71,7 +71,7 @@ setup(name="LinuxOpenSuseBackupTool",
       download_url = "https://pypi.python.org/pypi/",
       license="MIT",
       long_description="",
-      packages=["lback"],
+      packages=["lback", "lback/lib/"],
       classifiers=[
           'Development Status :: 5 - Production/Stable',
           'License :: OSI Approved :: BSD License',
