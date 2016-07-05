@@ -8,6 +8,13 @@ from lback.restore import Restore
 from lback.backup import Backup
 from lback.client import Client
 from lback.server import Server
+from lback.rpc.events import Events,EventMessages,EventTypes,EventObjects,EventStatuses
+from lback.rpc.meta import BackupMeta,RestoreMeta
+from lback.rpc.state import BackupState,RestoreState
+from lback.rpc.api import BackupServer
+from SimpleWebSocketServer import SimpleWebSocketServer,WebSocket
+
+
 import argparse
 import time
 import os
@@ -23,6 +30,7 @@ class Runtime(object):
     self._profiles()
     self.propagate()
     self.uid = Record().generate()
+    self.state = BackupState( self.uid )
 
     self.initv2(a)
 
@@ -50,6 +58,10 @@ class Runtime(object):
 		help="An ID for Lback",
 		default=Record().generate()
 	)
+    parser.add_argument("--rpc",
+		help="Run the RPC server for Lback",
+		action="store_true",
+		default=False)
     parser.add_argument("--name", help="Name for backup", default="Untitled Backup")
     parser.add_argument("--clean", action="store_true",
 		help="Clean backup on completion"
@@ -221,6 +233,7 @@ class Runtime(object):
   def perform(self, args):
     is_success = False
 
+    state=self.state
     if args.settings:
       lback_output('Opening settings') 
       os.system('vim /usr/local/lback/settings.json')
@@ -275,6 +288,11 @@ class Runtime(object):
       os.system("pkill -f 'python ./lback.py --jit'")
       os.system("pkill -f 'python /usr/bin/lback.py --profiler'")
       return
+
+    if args.rpc:
+	 server = SimpleWebSocketServer("127.0.0.1",9000,BackupServer)
+	 server.serveforever()
+	 
       
     if args.server:
       args.local = False
@@ -294,7 +312,13 @@ class Runtime(object):
         pass
       else:
         lback_output("Gathering files.. this can take awhile")
-        bkp = Backup(args.id, args.folder)
+        bkp = Backup(args.id, args.folder, state=state)
+	meta= BackupMeta.getStartedMeta(args.id) 
+	state.setState( Events.getStartEvent(
+		 status=EventStatuses.STATUS_STARTED,
+		 message=EventMessages.MSG_BACKUP_STARTED,
+		 obj=EventObjects.OBJECT_BACKUP,
+		 data=meta.serialize()) )
         bkp.run()
         
         if bkp.status == 1:

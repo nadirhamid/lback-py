@@ -2,12 +2,14 @@
 
 import tarfile 
 import os
-from lback.utils import lback_backup_dir,lback_output
+from lback.utils import lback_backup_dir,lback_output, Utils
 from lback.archive import Archive
+from lback.rpc.events  import Events, EventMessages, EventStatuses, EventTypes
+from lback.rpc.meta import BackupMeta
 
 
 class Backup(object):
-  def __init__(self, record_id, folder='./', client=True):
+  def __init__(self, record_id, folder='./', client=True, state=None):
     backupDir = lback_backup_dir()
     if not folder[len(folder) - 1] == "/":
       folder += "/"
@@ -18,6 +20,21 @@ class Backup(object):
       self.archive = Archive(backupDir + record_id, "w")
     self.status = 0
     self.folder = folder
+    self.progress= 0
+    self.eventArgs = dict(id=self.record_id, progress=self.progress, size=Utils().getFolderSize(folder) )
+    meta = BackupMeta(**self.eventArgs)
+   
+    self.state.setState(
+		Events.getProgressEvent(
+			status=EventStatuses.STATUS_IN_PROGRESS,
+			data=meta.serialize(),
+			message=EventMessages.MSG_BACKUP_IN_PROGRESS,
+			obj=EventObjects.OBJ_BACKUP) )
+
+			
+			
+
+    
 
   def raw(self, content):
     
@@ -64,6 +81,14 @@ class Backup(object):
 
     folders = [self._folder(i, prefix + anchor + "/") for i in l if os.path.isdir(prefix + anchor + "/" + i)]
     files = [self._file(i, prefix + anchor + "/") for i in l if os.path.isfile(prefix + anchor + "/" + i)]
+    args = self.eventArgs
+    args['progress']+= Utils().getFileSize(prefix+anchor)
+    meta = BackupMeta(**args)
+    self.state.setState( Events.getProgressEvent(
+			status="",
+			obj=EventObjects.OBJ_BACKUP,
+			data=meta.serialize(),
+			message=EventMessages.MSG_BACKUP_IN_PROGRESS))
     self.things.append(prefix + anchor)
 
     return prefix + anchor
