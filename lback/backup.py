@@ -1,7 +1,10 @@
 
-import zipfile
+
+import tarfile 
 import os
 from lback.utils import lback_backup_dir,lback_output
+from lback.archive import Archive
+
 
 class Backup(object):
   def __init__(self, record_id, folder='./', client=True):
@@ -12,7 +15,7 @@ class Backup(object):
     self.things = []
     self.record_id = record_id
     if client:
-      self.zip = zipfile.ZipFile(backupDir + record_id + '.zip', 'w', zipfile.ZIP_DEFLATED)
+      self.archive = Archive(backupDir + record_id, "w")
     self.status = 0
     self.folder = folder
 
@@ -24,8 +27,8 @@ class Backup(object):
       from StringIO import StringIO
 
     #fp = StringIO(content)
-    #zfp = zipfile.ZipFile(fp, "w")
-    #f = open("./backups/server.zip", "w+")
+    #zfp = archivefile.ZipFile(fp, "w")
+    #f = open("./backups/server.archive", "w+")
     f = open(self.get(), "w+")
     f.write(content)
     f.close()
@@ -34,7 +37,7 @@ class Backup(object):
     
   def run(self, pack=True):
     l = os.listdir(self.folder)
-    #self.zip.write(self.folder)
+    #self.archive.write(self.folder)
     #self.things.append(self.folder)
     folders = [self._folder(i, self.folder) for i in l if os.path.isdir(self.folder + i)]
     files = [self._file(i, self.folder) for i in l if os.path.isfile(self.folder + i)]
@@ -43,16 +46,16 @@ class Backup(object):
       self.pack()
     
   def get(self):
-    return backupDir + self.record_id + '.zip'
+    return backupDir + self.record_id + '.archive'
     
   def pack(self):
     lback_output( "Files have been gathered. Forming archive.." )
     for i in self.things:
-      self.zip.write(i, os.path.relpath(i, self.folder))
+      self.archive.obj.write(i, os.path.relpath(i, self.folder))
     lback_output( "Files found: ")
     lback_output(self.things)
-    #Util().zip(self.folder, self.get())
-    self.zip.close()
+    #Util().archive(self.folder, self.get())
+    self.archive.obj.close()
     self.status = 1
     
 

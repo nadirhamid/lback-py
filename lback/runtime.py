@@ -1,7 +1,7 @@
 
 from lback.record import Record
 from lback.lib.dal import DAL,Field
-from lback.utils import lback_backup_dir, lback_output, check_for_id, Util
+from lback.utils import lback_backup_dir, lback_backup_ext, lback_output, check_for_id, Util
 from lback.profiler import Profiler
 from lback.jit import JIT
 from lback.restore import Restore
@@ -24,72 +24,75 @@ class Runtime(object):
     self.propagate()
     self.uid = Record().generate()
 
-    self.initv1(a)
+    self.initv2(a)
 
 
   def initv2(self, a):
-    parser = argparse.ArgumentParser(description="Lback 0.9.1 Help Screen")
-    parser.add_argument("backup", value="store.true",
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--backup", action="store_true",
 		help="Backup files and folders"
 		)
-    parser.add_argument("client", value="store.true",
+    parser.add_argument("--client", action="store_true",
 		help="Run LBack in client mode"
 			
 		)
-    parser.add_argument("restore", value="store.true",
+    parser.add_argument("--restore", action="store_true",
 		help="Run a restore"
 	)
-    parser.add_argument("server", value="store.true",
+    parser.add_argument("--server", action="store_true",
 		help="Run Lback in server mode"
 	)
-    parser.add_argument("folder", 
+    parser.add_argument("--folder", 
 		help="Select a folder",
 		default=""
 	)
-    parser.add_argument("id", 
-		help="An ID for Lback"
+    parser.add_argument("--id", 
+		help="An ID for Lback",
+		default=Record().generate()
 	)
-    parser.add_argument("name", help="Name for backup", default="")
-    parser.add_argument("clean", value="store.true",
+    parser.add_argument("--name", help="Name for backup", default="Untitled Backup")
+    parser.add_argument("--clean", action="store_true",
 		help="Clean backup on completion"
 	)
-    parser.add_argument("delete", value="store.true",
+    parser.add_argument("--delete", action="store_true",
 		help="Delete existing backup"
 		)
-    parser.add_argument("version", default="latest",
+    parser.add_argument("--remove", action="store_true",
+		help="Remove backup when done",
+	default=False)
+    parser.add_argument("--listall", action="store_true",
+		help="List backups",
+		default=False)
+    parser.add_argument("--version", default="latest",
 		help="Select a version tag"
 		)
-    parser.add_argument("local",default=False, value="store.true")
-    parser.add_argument("remote", default=False, value="store.true")
-    parser.add_argument("stop", default=False, value="store.true")
-    parser.add_argument("start", default=False, value="store.true")
-    parser.add_argument("restart", default=False, value="store.true")
-    parser.add_argument("graceful", default=False, value="store.true")
-    parser.add_argument("status", default=False, value="store.true")
-    parser.add_argument("settings", default=False, value="store.true")
+    parser.add_argument("--local",default=False, action="store_true")
+    parser.add_argument("--remote", default=False, action="store_true")
+    parser.add_argument("--stop", default=False, action="store_true")
+    parser.add_argument("--start", default=False, action="store_true")
+    parser.add_argument("--restart", default=False, action="store_true")
+    parser.add_argument("--graceful", default=False, action="store_true")
+    parser.add_argument("--status", default=False, action="store_true")
+    parser.add_argument("--settings", default=False, action="store_true")
  
-    parser.add_argument("snapshot", value="store.true",
+    parser.add_argument("--snapshot", action="store_true",
 		help="Make a snapshot"
 		)
-    parser.add_argument("profiler", default=False, value="store.true")
-    parser.add_argument("jit", default=False, value="store.true")
-    parser.add_argument("port", default="8050")
-    parser.add_argument("host", default="127.0.0.1")
+    parser.add_argument("--profiler", default=False, action="store_true")
+    parser.add_argument("--jit", default=False, action="store_true")
+    parser.add_argument("--port", default="8050")
+    parser.add_argument("--host", default="127.0.0.1")
     
   
-    parser.add_argument("encrypt", value="store.true",
+    parser.add_argument("--encrypt", action="store_true",
 		help="Make an encrypted backup"	
 	)
-    parser.add_argument("help", description="Help for Lback",default=False)
-    parsed = parser.parse_arguments()
+    parsed = parser.parse_args()
  
-    self.type ='CLIENT'
+    parsed.type ='CLIENT'
     if parsed.server:
-	self.type == 'SERVER'
-    if len(a)==1 or parsed.help:
-	 self._help()
-    else:
-         self.perform(parsed)
+	parsed.type == 'SERVER'
+    self.perform(parsed)
     
  
      
@@ -99,16 +102,18 @@ class Runtime(object):
 
   def initv1(self, a):
     backupDir = lback_backup_dir()
+    ext = lback_backup_ext()
     
     self.uid = Record().generate()
     self.type = 'CLIENT'
     self.help = 0
     self.clean = 0
-    self.name = "N/A"
+    args.name = "N/A"
     self.version = "1.0.0"
     self.is_jit = False
     self.s3 = False
     self.has_version = False
+    
 
     if not len(a) > 1:
       self.help = True
@@ -153,7 +158,7 @@ class Runtime(object):
       if i in ['-del', '--delete']:
         self.delete = True
       if i in ['-n', '--name']:
-        self.name = j
+        args.name = j
       if i in ['-cl', '--clean']:
         self.clean = True
       if i in ['-id', '--id']:
@@ -306,7 +311,7 @@ class Runtime(object):
               args.version = re.sub('\d$', str(nv), v)
               
 
-          self.db[self.db_table].insert(uid=args.id, time=time.time(), folder=args.folder, size=self.size, local=args.local,name=self.name, version=args.version, jit=True if args.jit else False)
+          self.db[self.db_table].insert(uid=args.id, time=time.time(), folder=args.folder, size=self.size, local=args.local,name=args.name, version=args.version, jit=True if args.jit else False)
           self.db.commit()
         
         
@@ -318,7 +323,7 @@ class Runtime(object):
             lback_output("Transaction ID: " + args.id)
           else:
             fc = open(bkp.get(), 'r').read()
-            client.run(cmd='BACKUP', folder=args.folder, uid=args.id, contents=fc, name=self.name,version=args.version,size=self.size)
+            client.run(cmd='BACKUP', folder=args.folder, uid=args.id, contents=fc, name=args.name,version=args.version,size=self.size)
             if client.status:
               lback_output("Backup Ok -- Now transferring to server")
               
@@ -394,11 +399,11 @@ class Runtime(object):
 	  lback_output("Forming archive.. this can take some time")
 	  if client.status:
 	    lback_output("Restore Retrieval Ok -- now attempting to restore")
-	    fp = open(backupDir + ruid + '.zip', 'w+')
+	    fp = open(backupDir + ruid + ext, 'w+')
 	    fp.write(client.get().decode("utf-8").decode("hex"))
 	    fp.close()
 	    
-	    rst = Restore(backupDir + ruid + '.zip', args.folder, self.clean)
+	    rst = Restore(backupDir + ruid + ext, args.folder, self.clean)
 	    rst.run(True, ruid)
 	    
 	    if rst.status:
@@ -435,8 +440,8 @@ class Runtime(object):
             client.run("DELETE",  uid=row.uid)
             lback_output(client.m)
           else:
-            os.remove(backupDir + row.uid+".zip")
-            if not os.path.isfile(backupDir +  row.uid + ".zip"):
+            os.remove(backupDir + row.uid+ext)
+            if not os.path.isfile(backupDir +  row.uid + ext):
               lback_output("Removed backup successfully")
             else:
               lback_output("Could not delete backup device or resource busy")
@@ -465,8 +470,8 @@ class Runtime(object):
                   lback_output(client.m)
                 else:
       
-                  os.remove(backupDir +theBackup.uid + ".zip")
-                  if not os.path.isfile(backupDir +   theBackup.uid + ".zip"):
+                  os.remove(backupDir +theBackup.uid + ext)
+                  if not os.path.isfile(backupDir +   theBackup.uid + ext):
                     lback_output("Removed the backup successfully")
                   else:
                     lback_output("Could not delete the backup device or resource is busy")
@@ -482,8 +487,8 @@ class Runtime(object):
             if not row.local:
               client.run("DELETE",uid=row.uid)
             else:
-              os.remove(backupDir + row.uid +".zip")
-              if not os.path.isfile(backupDir +  row.uid + ".zip"):
+              os.remove(backupDir + row.uid + ext)
+              if not os.path.isfile(backupDir +  row.uid + ext):
                 lback_output("Backup removed successfully" )
               else:
                 lback_output("Could not remove the backup" )

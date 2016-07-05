@@ -6,6 +6,7 @@ from google.protobuf.message import Message
 from google.protobuf.descriptor import FieldDescriptor, Descriptor
 from google.protobuf.reflection import GeneratedProtocolMessageType
 
+import tarfile
 
 
 def  make_lback_protobuf_field(name, type, type1, idx=0, tag=0, default_value=""):
@@ -107,6 +108,9 @@ def lback_output(*args,**kwargs):
       print i
 def lback_backup_dir():
     return "/usr/local/lback"
+def lback_backup_ext():
+    return ".tar.gz"
+  
 
     
 class Util(object):
@@ -126,6 +130,13 @@ class Util(object):
             zf.extract(member, os.path.relpath(path))
         except Exception, e:
             lback_output("Unable to extract {}".format(member.filename))
+  def untar(self, source_filename, dest_dir):
+	try:
+ 	  tarfile.TarFile( source_filename ).extractall( dest_dir )
+	except Exception, e:
+	   lback_output("Unable to extract {}".format(source_filename))
+	
+	
           
   def zip(self, source_filename, dest_dir):
     with zipfile.ZipFile(source_filename) as zf:
