@@ -1,5 +1,5 @@
 
-from lback.utils import Util
+from lback.utils import Util, lback_backup_dir, lback_backup_ext
 
 class Restore(object):
   def __init__(self, archive_loc, folder='./', clean=False):
@@ -8,8 +8,9 @@ class Restore(object):
     self.folder = folder
   def run(self, local=False, uid=''):
     backupDir = lback_backup_dir()
+    ext = lback_backup_ext()
     if local:
-      self.archive = backupDir + uid + ".zip"
+      self.archive = backupDir + uid + ext
 
     if self.clean:
       shutil.rmtree(self.folder)

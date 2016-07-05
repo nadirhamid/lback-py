@@ -63,7 +63,7 @@ class Runtime(object):
     parser.add_argument("--listall", action="store_true",
 		help="List backups",
 		default=False)
-    parser.add_argument("--version", default="latest",
+    parser.add_argument("--version", default=False,
 		help="Select a version tag"
 		)
     parser.add_argument("--local",default=False, action="store_true")
@@ -107,12 +107,12 @@ class Runtime(object):
     self.uid = Record().generate()
     self.type = 'CLIENT'
     self.help = 0
-    self.clean = 0
+    args.clean = 0
     args.name = "N/A"
     self.version = "1.0.0"
     self.is_jit = False
     self.s3 = False
-    self.has_version = False
+    self.version = False
     
 
     if not len(a) > 1:
@@ -160,7 +160,7 @@ class Runtime(object):
       if i in ['-n', '--name']:
         args.name = j
       if i in ['-cl', '--clean']:
-        self.clean = True
+        args.clean = True
       if i in ['-id', '--id']:
         self.id = j
       if i in ['-g', '--graceful']:
@@ -175,7 +175,7 @@ class Runtime(object):
         self.snapshot = True
       if i in ['-v', '--version']:
         self.version = j 
-        self.has_version = True
+        self.version = True
       if i in ['-j', '--just-in-time', '-jit']:
         self.jit = True
         self.is_jit = True
@@ -192,7 +192,7 @@ class Runtime(object):
       self._help()
       return
 
-    if not self.has_version and 'restore' in dir(self):
+    if not self.version and 'restore' in dir(self):
       self.version = "latest" 
 
     lback_output("Running in {0} mode".format(self.type))
@@ -343,7 +343,7 @@ class Runtime(object):
       if args.id:
 
 	id = check_for_id( args.id, self.db)
-	if not self.has_version:
+	if not args.version:
 	  r = self.db((self.db[self.db_table].uid == id)  | \
 		      (self.db[self.db_table].name == id) | \
 		(self.db[self.db_table].folder == id)).select().last()
@@ -381,14 +381,14 @@ class Runtime(object):
 	#if s3 in dir(self) and self.s3:
 	#  pass
 	
-	if self.clean:
+	if args.clean:
 	  lback_output("Cleaning directory..")
 	  if not os.path.isdir(args.folder):
 	    os.makedirs(args.folder)
 	  
 	if args.local:
 	  lback_output("Restore Ok -- Now restoring compartment")
-	  rst = Restore(False, args.folder, self.clean)
+	  rst = Restore(False, args.folder, args.clean)
 	  rst.run(True, ruid)  
 	  
 	  if rst.status:
@@ -403,7 +403,7 @@ class Runtime(object):
 	    fp.write(client.get().decode("utf-8").decode("hex"))
 	    fp.close()
 	    
-	    rst = Restore(backupDir + ruid + ext, args.folder, self.clean)
+	    rst = Restore(backupDir + ruid + ext, args.folder, args.clean)
 	    rst.run(True, ruid)
 	    
 	    if rst.status:
