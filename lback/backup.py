@@ -2,9 +2,9 @@
 
 import tarfile 
 import os
-from lback.utils import lback_backup_dir,lback_output, Utils
+from lback.utils import lback_backup_dir,lback_output, Util
 from lback.archive import Archive
-from lback.rpc.events  import Events, EventMessages, EventStatuses, EventTypes
+from lback.rpc.events  import Events, EventMessages, EventStatuses, EventTypes, EventObjects
 from lback.rpc.meta import BackupMeta
 
 
@@ -21,15 +21,16 @@ class Backup(object):
     self.status = 0
     self.folder = folder
     self.progress= 0
-    self.eventArgs = dict(id=self.record_id, progress=self.progress, size=Utils().getFolderSize(folder) )
+    self.eventArgs = dict(id=self.record_id, progressSz=self.progress,progressPct=self.progress, size=Util().getFolderSize(folder) )
     meta = BackupMeta(**self.eventArgs)
+    self.state = state
    
     self.state.setState(
 		Events.getProgressEvent(
 			status=EventStatuses.STATUS_IN_PROGRESS,
 			data=meta.serialize(),
 			message=EventMessages.MSG_BACKUP_IN_PROGRESS,
-			obj=EventObjects.OBJ_BACKUP) )
+			obj=EventObjects.OBJECT_BACKUP) )
 
 			
 			
@@ -82,13 +83,7 @@ class Backup(object):
     folders = [self._folder(i, prefix + anchor + "/") for i in l if os.path.isdir(prefix + anchor + "/" + i)]
     files = [self._file(i, prefix + anchor + "/") for i in l if os.path.isfile(prefix + anchor + "/" + i)]
     args = self.eventArgs
-    args['progress']+= Utils().getFileSize(prefix+anchor)
-    meta = BackupMeta(**args)
-    self.state.setState( Events.getProgressEvent(
-			status="",
-			obj=EventObjects.OBJ_BACKUP,
-			data=meta.serialize(),
-			message=EventMessages.MSG_BACKUP_IN_PROGRESS))
+
     self.things.append(prefix + anchor)
 
     return prefix + anchor
@@ -96,7 +91,19 @@ class Backup(object):
   def _file(self, anchor, prefix=''):
     lback_output("added => " + prefix + anchor)
     self.things.append(prefix + anchor)
+    args = self.eventArgs
+		
+    args['progressSz'] += Util().getFileSize(prefix+anchor)
+    args['progressPct']= "{0:.2f}".format((args['progressSz']/args['size'])*100)
+
+    meta = BackupMeta(**args)
     
+    self.state.setState( Events.getProgressEvent(
+			status=EventStatuses.STATUS_IN_PROGRESS,
+			obj=EventObjects.OBJECT_BACKUP,
+			data=meta.serialize(),
+			message=EventMessages.MSG_BACKUP_IN_PROGRESS))
+
     return prefix + anchor
   
 

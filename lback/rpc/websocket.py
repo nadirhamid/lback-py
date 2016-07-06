@@ -1,5 +1,5 @@
 from pyee import EventEmitter
-from lback.rpc.api import RPCSuccessMessages, RPCErrorMessages, RPCResponse
+from lback.rpc.api import RPCSuccessMessages, RPCErrorMessages, RPCResponse, RPCMessage
 from lback.rpc.state import BackupState
 from multiprocessing import Queue
 from threading import Thread
@@ -68,6 +68,12 @@ class  BackupServer( WebSocket ):
 		stateObj = RestoreState( msg['backupId'] )
 
 
+	 hasState = state.getState()
+	 if not hasState:
+		 return self.send(RPCResponse(
+		 	False,
+			message=RPCErrorMessages.ERR_NOT_READY).serialize())
+	 
 	 if msg['type'] == "poll":
 		 state = getBackupState(stateObj)
 		 self.send(state.serialize())

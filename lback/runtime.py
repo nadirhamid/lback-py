@@ -11,7 +11,7 @@ from lback.server import Server
 from lback.rpc.events import Events,EventMessages,EventTypes,EventObjects,EventStatuses
 from lback.rpc.meta import BackupMeta,RestoreMeta
 from lback.rpc.state import BackupState,RestoreState
-from lback.rpc.api import BackupServer
+from lback.rpc.websocket import BackupServer
 from SimpleWebSocketServer import SimpleWebSocketServer,WebSocket
 
 
@@ -93,7 +93,7 @@ class Runtime(object):
     parser.add_argument("--profiler", default=False, action="store_true")
     parser.add_argument("--jit", default=False, action="store_true")
     parser.add_argument("--port", default="8050")
-    parser.add_argument("--host", default="127.0.0.1")
+    parser.add_argument("--host", default="0.0.0.0")
     
   
     parser.add_argument("--encrypt", action="store_true",
@@ -277,7 +277,7 @@ class Runtime(object):
       return
     
     if args.folder:
-      self.size = Util().getFolderSize(args.folder)
+      self.size = str(Util().getFolderSize(args.folder))
     
     if args.profiler and not args.stop:
       profiler = Profiler(self.profiles,args.host,args.port,args.host,self.port,self.db,self.db_table).run()
@@ -290,7 +290,8 @@ class Runtime(object):
       return
 
     if args.rpc:
-	 server = SimpleWebSocketServer("127.0.0.1",9000,BackupServer)
+	 lback_output("RPC - Starting WebSocket server on {0}:{1}".format( "0.0.0.0", "9000"))
+	 server = SimpleWebSocketServer("0.0.0.0",9000,BackupServer)
 	 server.serveforever()
 	 
       
@@ -313,7 +314,7 @@ class Runtime(object):
       else:
         lback_output("Gathering files.. this can take awhile")
         bkp = Backup(args.id, args.folder, state=state)
-	meta= BackupMeta.getStartedMeta(args.id) 
+	meta= BackupMeta(id=args.id)
 	state.setState( Events.getStartEvent(
 		 status=EventStatuses.STATUS_STARTED,
 		 message=EventMessages.MSG_BACKUP_STARTED,
@@ -342,6 +343,13 @@ class Runtime(object):
           is_success = True
           
           if args.local:
+
+	    state.setState(Events.getFinishedEvent(
+			status=EventStatuses.STATUS_FINISHED,
+			message=EventMessages.MSG_BACKUP_FINISHED,
+			obj=EventObjects.OBJECT_BACKUP,
+		   	data=meta.serialize()))	
+            lback_output("Transaction ID: " + args.id)
             lback_output("Backup Ok -- Now saving to disk")
             lback_output("Local Backup has been successfully stored")
             lback_output("Transaction ID: " + args.id)

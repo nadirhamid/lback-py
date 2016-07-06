@@ -2,12 +2,19 @@
 import json
 
 class RPCErrorMessages(object):
-   ERR_STREAMING_IN_PROGRESS=""
+   ERR_STREAMING_IN_PROGRESS="Streaming already in progress"
    ERR_MESSAGE = "Message could not be deserialized"
+   ERR_NOT_READY = "Backup not ready for action specified"
 class RPCSuccessMessages(object):
    CONNECTION_OK = "Connected to server"
    POLL_OK  = "Got poll progress"
    POLL_ERROR = "Got poll progress"
+def RPCMessage(message):
+	try:
+		return json.loads( message )
+	except Exception, ex:
+		return False
+	
 
 class RPCResponse(object):
 	 def __init__(self, error, message="", data=[] ):

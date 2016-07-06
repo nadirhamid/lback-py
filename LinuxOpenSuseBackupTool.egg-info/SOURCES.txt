@@ -9,8 +9,11 @@ lback/archive.py
 lback/backup.py
 lback/client.py
 lback/core.py
+lback/dal.py
 lback/jit.py
+lback/log.py
 lback/main.py
+lback/odict.py
 lback/profiler.py
 lback/record.py
 lback/restore.py
@@ -20,3 +23,9 @@ lback/utils.py
 lback/lib/__init__.py
 lback/lib/dal.py
 lback/lib/odict.py
+lback/rpc/__init__.py
+lback/rpc/api.py
+lback/rpc/events.py
+lback/rpc/meta.py
+lback/rpc/state.py
+lback/rpc/websocket.py

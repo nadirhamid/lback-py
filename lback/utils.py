@@ -171,5 +171,7 @@ class Util(object):
     if not parent:   
       return float(thisFolderSize)
     else:
-      return str(totalSize)
+      return float(totalSize)
+  def getFileSize(self,path):
+	 return float(os.path.getsize( path ))
  
