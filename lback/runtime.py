@@ -11,7 +11,7 @@ from lback.server import Server
 from lback.rpc.events import Events,EventMessages,EventTypes,EventObjects,EventStatuses
 from lback.rpc.meta import BackupMeta,RestoreMeta
 from lback.rpc.state import BackupState,RestoreState
-from lback.rpc.websocket import BackupServer
+from lback.rpc.websocket import BackupServer, WebSocketServer
 from SimpleWebSocketServer import SimpleWebSocketServer,WebSocket
 
 
@@ -291,8 +291,10 @@ class Runtime(object):
 
     if args.rpc:
 	 lback_output("RPC - Starting WebSocket server on {0}:{1}".format( "0.0.0.0", "9000"))
-	 server = SimpleWebSocketServer("0.0.0.0",9000,BackupServer)
-	 server.serveforever()
+	 #server = SimpleWebSocketServer("0.0.0.0",9000,BackupServer)
+	 #server.serveforever()
+	 server = WebSocketServer("0.0.0.0", "9000")
+	 
 	 
       
     if args.server:
