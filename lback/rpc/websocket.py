@@ -20,6 +20,7 @@ from ws4py import configure_logger
 from chaussette.backend._gevent import Server as GEventServer
 from chaussette.backend import register
 from chaussette.server import make_server
+import time
 import socket
 
 
@@ -55,11 +56,11 @@ class BackupServerStreamer(object):
    def startStreaming(self):
 	 backupState= getBackupState(self.stateObj)
 	
-	 message = self.stateObj.getState()
+	 #message = self.stateObj.getState()
 	 while not backupState.error and (
-			message['status'] ==EventStatuses.STATUS_IN_PROGRESS
+			backupState.data['status'] ==EventStatuses.STATUS_IN_PROGRESS
 			or
-			message['status'] == EventStatuses.STATUS_STARTED ):
+			backupState.data['status']  == EventStatuses.STATUS_STARTED ):
 		self.client.send( backupState.serialize() )
 		time.sleep( 1 )
 	 self.client.send( backupState.serialize() )
@@ -89,13 +90,9 @@ class  BackupServer( object ):
 		 self.send(state.serialize())
     	 elif msg['type'] == "stream":
 	 	 streamer = BackupServerStreamer(self, stateObj)
-		 if not self.sthread:
-			 self.sthread = Thread(target=streamer.startStreaming, args=(streamer))
-			 self.sthread.run()
-		 else:
-			 self.send( RPCResponse(
-				False,
-				message=RPCErrorMessages.ERR_STREAMING_IN_PROGRESS))
+		 thread = Thread(target=streamer.startStreaming, args=())
+	   	 thread.daemon = True
+		 thread.run()
 class WebSocketChaussette( GEventServer ):
    handler_class = WebSocketWSGIHandler
    def __init__(self,*args,**kwargs):

@@ -21,7 +21,7 @@ class RPCResponse(object):
 	 def __init__(self, error, message="", data=[] ):
 		self.error=error
 		self.message = message
-		self.data = data
+		self.data = json.loads(data)
 	 def serialize(self):
 		if self.error:
 			return json.dumps(dict(
