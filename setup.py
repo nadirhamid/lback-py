@@ -22,7 +22,8 @@ class installsetup(install):
       os.remove(cwd+"/db.sql")
       db = open(cwd+"/db.sql","w+")
       db.close()
-     
+    
+        
       if os.path.isdir("/usr/local/lback"):
           shutil.rmtree("/usr/local/lback")
 
@@ -40,6 +41,8 @@ class installsetup(install):
             (cwd+"/db.sql", "/usr/local/lback/db.sql")
         ]
       for i in links:
+	 if os.path.islink(i[1]):
+	      os.remove(i[1])
          subprocess.Popen(['ln', '-s', i[0], i[1]])
       install.run(self)
 
