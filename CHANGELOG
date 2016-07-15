@@ -67,6 +67,15 @@ Use with:
 - Work library structure
 
 
+0.9.3
+- Add Lback RPC, as inter message transport for backup status checking
+   - available as 
+```lback --rpc```
+
+
+
+
+
    
 
 
