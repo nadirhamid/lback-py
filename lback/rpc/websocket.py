@@ -3,7 +3,7 @@ from lback.rpc.api import RPCSuccessMessages, RPCErrorMessages, RPCResponse, RPC
 from lback.rpc.state import BackupState
 from multiprocessing import Queue
 from threading import Thread
-from  lback.rpc.events import EventStatuses
+from  lback.rpc.events import EventStatuses, EventObjects
 
 from SimpleWebSocketServer import SimpleWebSocketServer, WebSocket
 from gevent import monkey; monkey.patch_all()
@@ -68,7 +68,7 @@ class BackupServerStreamer(object):
 # based on websockets
 class  BackupServer( object ):
    def received_message(self, message):
-	 msg = RPCMessage(self.data)
+	 msg = RPCMessage(message)
 	 if not msg:
 	 	return self.send(RPCResponse(
 			False,
@@ -76,10 +76,9 @@ class  BackupServer( object ):
 	 if msg['obj'] ==  EventObjects.OBJECT_BACKUP:
 		stateObj = BackupState( msg['backupId'] )
 	 elif msg['obj'] == EventObjects.OBJECT_RESTORE:
-		stateObj = RestoreState( msg['backupId'] )
-
-
-	 hasState = state.getState()
+		stateObj = RestoreState( msg['restoreId'] )
+	 
+	 hasState = stateObj.getState()
 	 if not hasState:
 		 return self.send(RPCResponse(
 		 	False,
@@ -98,12 +97,14 @@ class  BackupServer( object ):
 				False,
 				message=RPCErrorMessages.ERR_STREAMING_IN_PROGRESS))
 class WebSocketChaussette( GEventServer ):
-   handler_cls = WebSocketWSGIHandler
+   handler_class = WebSocketWSGIHandler
    def __init__(self,*args,**kwargs):
         self.server = GEventServer.__init__(self, *args, **kwargs)	
 	self.pool = GEventWebSocketPool()
    def close(self):
 	self.pool.close()
+	
+
 class WebSocketGevent( WebSocket, BackupServer ):
    def opened(self):
 	lback_output("Received connection for Lback RPC ")
@@ -117,14 +118,14 @@ class WebSocketGevent( WebSocket, BackupServer ):
    
 class WebSocketServer( object ):
 	 def __init__(self, host, port):
-		register("ws4py.app", WebSocketChaussette)
+		register("ws4py", WebSocketChaussette)
 		logger = configure_logger()
 		self.server =  make_server(
-			app=WebSocketWSGIApplication((host, port), handler_cls=WebSocketGevent),
-			host="unix://%s/ws.sock"%(os.getcwd()),
+			app=WebSocketWSGIApplication(handler_cls=WebSocketGevent),
+			host=host,
 			port=port,
-		 	backend="ws4py.app",
-			address_family=socket.AF_UNIX,
+		 	backend="ws4py",
+			address_family=socket.AF_INET,
 			logger=logger )
 		self.server.serve_forever()
 		

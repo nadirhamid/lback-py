@@ -13,6 +13,7 @@ class StateConnection(object):
 		lback_output("RPC - Getting state Backup: {0}".format( self.backupId ))
 		data = self.client.get(self.prefix+self.backupId)
 		lback_output("RPC - Got state: {0}".format( data ) )
+	        return data
 	 def setState(self,data):
 		lback_output("RPC - Setting state Backup: {0}: {1}".format( self.backupId, data) )
 		return self.client.set(self.prefix+self.backupId, data)

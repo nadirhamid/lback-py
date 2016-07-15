@@ -293,7 +293,7 @@ class Runtime(object):
 	 lback_output("RPC - Starting WebSocket server on {0}:{1}".format( "0.0.0.0", "9000"))
 	 #server = SimpleWebSocketServer("0.0.0.0",9000,BackupServer)
 	 #server.serveforever()
-	 server = WebSocketServer("0.0.0.0", "9000")
+	 server = WebSocketServer("0.0.0.0", 9000)
 	 
 	 
       
