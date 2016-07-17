@@ -10,11 +10,12 @@ import importlib
 import argparse
 import random
 import os
+import json
 from gevent import monkey
 monkey.patch_all()
 import gevent
 import gevent.pywsgi
-from lback.utils import lback_output, lback_auth_user
+from lback.utils import lback_output, lback_auth_user, lback_uuid
 from ws4py.server.geventserver import WebSocketWSGIApplication, WebSocketWSGIHandler, GEventWebSocketPool
 from ws4py import configure_logger
 from chaussette.backend._gevent import Server as GEventServer
@@ -31,6 +32,16 @@ from ws4py.websocket import EchoWebSocket, WebSocket
 
 
 emitter = EventEmitter()
+
+def getObject(msg):
+	 
+         if msg['obj'] ==  EventObjects.OBJECT_BACKUP:
+		stateObj = BackupState( msg['backupId'] )
+	 elif msg['obj'] == EventObjects.OBJECT_RESTORE:
+		stateObj = RestoreState( msg['restoreId'] )
+         return stateObj
+   
+
 
 
 ## all connections
@@ -72,22 +83,39 @@ class  BackupServerBackup(object):
 		  self.msg = msg
 	 def serveBackup(self):
 		  module = importlib.import_module("lback.runtime")
+		  msg = json.dumps({"backupId": self.backupUuid})
 		  self.socket.send(RPCResponse(
 			  True,
 			   message="",
-			  data= {"backupId": self.backupUuid})
+			  data=msg).serialize()
 			)
-		  runtime = module.Runtime(["--backup", "--id", self.backupUuid, "--local", "--folder",  self.msg.folder] )
+		   
+		  args =  module.RuntimeArgs(backup=True, id=self.backupUuid,
+				local=True, 
+				name=self.msg['name'],
+				version=self.msg['version'],
+				folder=self.msg['folder'])
+		  runtime = module.Runtime(args)
+		  runtime.perform()
+		   
+		   
 class BackupServerRestore(object):
        def __init__(self, socket, msg):
 	   self.restoreUuid = msg.backupId
            self.socket = socket
        def serveRestore( self ):
             module = importlib.import_module("lback.runtime")
-	    runtime = module.Runtime(["--restore", "--local", "--id", self.restoreUuid])
+	    args = module.RuntimeArgs(
+		restore=True,
+		local=True,
+		id=self.restoreUuid
+		)
+	    runtime = module.Runtime( args )
+	    runtime.perform()
+		
             self.socket.send(RPCResponse(
 			True,
-			 message="Restore complete"))
+			 message="Restore complete").serialize())
 			
 			
     
@@ -106,28 +134,19 @@ class  BackupServer( object ):
 		 return self.send(RPCResponse(
 			False,
 			message=RPCErrorMessages.ERR_USER_AUTH).serialize())
-	 if msg['obj'] ==  EventObjects.OBJECT_BACKUP:
-		stateObj = BackupState( msg['backupId'] )
-	 elif msg['obj'] == EventObjects.OBJECT_RESTORE:
-		stateObj = RestoreState( msg['restoreId'] )
-	 
-	 hasState = stateObj.getState()
-	 if not hasState:
-		 return self.send(RPCResponse(
-		 	False,
-			message=RPCErrorMessages.ERR_NOT_READY).serialize())
-	 
 	 if msg['type'] == "poll":
+		 stateObj = getObject(msg)
 		 state = getBackupState(stateObj)
 		 self.send(state.serialize())
     	 elif msg['type'] == "stream":
+		 stateObj = getObject(msg)
 	 	 streamer = BackupServerStreamer(self, stateObj)
 		 thread = Thread(target=streamer.startStreaming, args=())
 	   	 thread.daemon = True
 		 thread.run()
          elif msg['type'] == "backup":
 	         id = lback_uuid()
-	     	 backup =  BackupServerBakup(self, msg)
+	     	 backup =  BackupServerBackup(self, msg)
 	         thread = Thread(target=backup.serveBackup, args=())
 		 thread.daemon = True
  	     	 thread.run()

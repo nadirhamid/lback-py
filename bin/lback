@@ -2,6 +2,7 @@
 import sys
 from lback.runtime import Runtime
 if __name__ =='__main__':
-   Runtime(sys.argv)
+   runtime = Runtime(sys.argv)
+   runtime.initv2()
 
 

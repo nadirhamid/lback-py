@@ -19,7 +19,7 @@ def RPCMessage(message):
 
 
 class RPCResponse(object):
-	 def __init__(self, error, message="", data=[] ):
+	 def __init__(self, error, message="", data="{}"):
 		self.error=error
 		self.message = message
 		self.data = json.loads(data)

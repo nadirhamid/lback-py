@@ -1,12 +1,14 @@
 
 import time,socket
 import os
-import zipfile
+import  zipfile
 from google.protobuf.message import Message
 from google.protobuf.descriptor import FieldDescriptor, Descriptor
 from google.protobuf.reflection import GeneratedProtocolMessageType
 from dal import DAL, Field
 
+import hashlib
+import time
 import tarfile
 
 
@@ -111,12 +113,36 @@ def lback_backup_dir():
     return "/usr/local/lback"
 def lback_backup_ext():
     return ".tar.gz"
+def lback_uuid():
+    return hashlib.sha1(str(time.time())).hexdigest()
 def lback_db( ):
   db = DAL('sqlite://db.sql', folder='/usr/local/lback/')
+  db.define_table(
+      "backups",
+      Field('id'),
+      Field('uid'),
+      Field('name'),
+      Field('time'),
+      Field('folder'),
+      Field('size'),
+      Field('version'),
+      Field('jit'),
+      Field('local'),
+      migrate=True
+    )
+  db.define_table(
+	 "users",
+	 Field('id'),
+	 Field('username'),
+	 Field('password'),
+	migrate=True
+   )
+
+
   return db
 def lback_auth_user( username, password ):
     db = lback_db()
-    user =  db(db[runtime.db_user_table].username==username & db[runtime.db_user_table].password==password).select().first()
+    user =  db((db.users.username==username) & (db.users.password==password)).select().first()
     return user
    
 

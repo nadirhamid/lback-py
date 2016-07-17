@@ -17,6 +17,16 @@ import argparse
 import time
 import os
 import json
+def check_arg(args, arg):
+   if  arg in dir( args ) and getattr( args, arg ):
+      return True
+   return False
+   
+class RuntimeArgs(object):
+   def __init__(self,*args,**kwargs):
+     for i in kwargs.keys():
+	  setattr( self,  i, kwargs[i] )
+     self.id = ""
 class Runtime(object):
   db = lback_db()
   db_host= ''
@@ -26,14 +36,15 @@ class Runtime(object):
   def __init__(self, a):
     self._settings()
     self._profiles()
-    self.propagate()
-    self.uid = Record().generate()
-    self.state = BackupState( self.uid )
+    ##self.propagate()
+    ##self.uid = Record().generate()
+    ##self.state = BackupState( self.uid )
+    self.args = a
 
-    self.initv2(a)
+    ##self.initv2(a)
 
 
-  def initv2(self, a):
+  def initv2(self):
     parser = argparse.ArgumentParser()
     parser.add_argument("--adduser", action="store_true",
 	 help="Add a  new user to Lback",
@@ -112,7 +123,8 @@ class Runtime(object):
     parsed.type ='CLIENT'
     if parsed.server:
 	parsed.type == 'SERVER'
-    self.perform(parsed)
+    self.args = parsed
+    self.perform()
     
  
      
@@ -120,7 +132,8 @@ class Runtime(object):
 
     
 
-  def initv1(self, a):
+  def initv1(self):
+    a = self.args
     backupDir = lback_backup_dir()
     ext = lback_backup_ext()
     
@@ -216,43 +229,25 @@ class Runtime(object):
       self.version = "latest" 
 
     lback_output("Running in {0} mode".format(self.type))
-    self.perform(self)
+    self.args = self
+    self.perform()
   """
   try to set up the database
   """
   def propagate(self):
+     pass
 
-    self.db.define_table(
-      self.db_table,
-      Field('id'),
-      Field('uid'),
-      Field('name'),
-      Field('time'),
-      Field('folder'),
-      Field('size'),
-      Field('version'),
-      Field('jit'),
-      Field('local'),
-      migrate=True
-    )
-    self.db.define_table(
-	 self.db_user_table,
-	 Field('id'),
-	 Field('username'),
-	 Field('password'),
-	migrate=True
-   )
-
-    
-  def perform(self, args):
+        
+  def perform(self):
+    args = self.args
     is_success = False
 
-    state=self.state
-    if args.settings:
+    state=BackupState( args.id )
+    if check_arg(args, "settings"):
       lback_output('Opening settings') 
       os.system('vim /usr/local/lback/settings.json')
 
-    if args.graceful:
+    if check_arg(args, "graceful"):
       """ TODO add graceful shutdown """
       lback_output("Stopping server..")
       os.system("pkill -f 'python ./lback.py --server'")
@@ -260,7 +255,7 @@ class Runtime(object):
       exit()
       return
 
-    if args.stop:
+    if check_arg(args, "stop"):
       lback_output("Stopping server..")
 
       os.system("pkill -f 'python ./lback.py --server'")
@@ -268,7 +263,7 @@ class Runtime(object):
       quit()
       return
 
-    if args.restart:
+    if check_arg(args,"start"):
       lback_output("Restarting server..")
 
       os.system("pkill -f 'python ./lback.py --server'")
@@ -280,30 +275,26 @@ class Runtime(object):
       quit()
       return
     
-    if args.status:
+    if check_arg( args, "status" ):
       lback_output("Status of SERVER:")
       return
 
-    if args.profiler and args.stop:
+    if check_arg(args, "profiler" ) and check_arg(args, "stop" ):
       lback_output("Stopping profiler..")
       os.system("pkill -f 'python ./lback.py --profiler'")
       os.system("pkill -f 'python /usr/bin/lback.py --profiler'")
       return
     
-    if args.folder:
+    if check_arg(args, "folder" ):
       self.size = str(Util().getFolderSize(args.folder))
     
-    if args.profiler and not args.stop:
-      profiler = Profiler(self.profiles,args.host,args.port,args.host,self.port,self.db,self.db_table).run()
-
-
-    if  args.jit and args.stop:
+    if check_arg(args, "jit" ) and check_arg(args, "stop" ):
       lback_output("Stopping JIT instance..")
       os.system("pkill -f 'python ./lback.py --jit'")
       os.system("pkill -f 'python /usr/bin/lback.py --profiler'")
       return
 
-    if args.rpc:
+    if check_arg(args, "rpc" ):
 	 lback_output("RPC - Starting WebSocket server on {0}:{1}".format( "0.0.0.0", "9000"))
 	 #server = SimpleWebSocketServer("0.0.0.0",9000,BackupServer)
 	 #server.serveforever()
@@ -311,7 +302,7 @@ class Runtime(object):
 	 
 	 
       
-    if args.server:
+    if check_arg( args, "server" ):
       args.local = False
       if self.type == 'CLIENT':
         client = Client(self.port, args.host, dict(ip=args.host, port=args.port))
@@ -324,7 +315,7 @@ class Runtime(object):
     else:
       args.local = True
         
-    if args.backup:
+    if check_arg(args, "backup" ):
       if not args.folder:
         pass
       else:
@@ -340,7 +331,7 @@ class Runtime(object):
         
         if bkp.status == 1:
 
-          if args.version == '1.0.0':
+          if check_arg(args, "version") and args.version == '1.0.0':
             """ try to get previous version """
             """ and up the patch by one """
             r = self.db(self.db[self.db_table].folder == args.folder).select().last()
@@ -352,13 +343,13 @@ class Runtime(object):
               args.version = re.sub('\d$', str(nv), v)
               
 
-          self.db[self.db_table].insert(uid=args.id, time=time.time(), folder=args.folder, size=self.size, local=args.local,name=args.name, version=args.version, jit=True if args.jit else False)
+          self.db[self.db_table].insert(uid=args.id, time=time.time(), folder=args.folder, size=self.size, local=args.local,name=args.name, version=args.version)
           self.db.commit()
         
         
           is_success = True
           
-          if args.local:
+          if check_arg(args,"local"):
 
 	    state.setState(Events.getFinishedEvent(
 			status=EventStatuses.STATUS_FINISHED,
@@ -387,7 +378,7 @@ class Runtime(object):
         else:
           pass
         
-    if args.restore:
+    if check_arg(args, "restore"):
       if args.id:
 
 	id = check_for_id( args.id, self.db)
@@ -429,12 +420,12 @@ class Runtime(object):
 	#if s3 in dir(self) and self.s3:
 	#  pass
 	
-	if args.clean:
+	if check_arg(args,"clean"):
 	  lback_output("Cleaning directory..")
 	  if not os.path.isdir(args.folder):
 	    os.makedirs(args.folder)
 	  
-	if args.local:
+	if check_arg(args,"local"):
 	  lback_output("Restore Ok -- Now restoring compartment")
 	  rst = Restore(False, args.folder, args.clean)
 	  rst.run(True, ruid)  
@@ -459,7 +450,7 @@ class Runtime(object):
       else:
 	  lback_output("Please provide an ID")
 
-    if args.jit:
+    if check_arg(args, "jit"):
       if args.id:
 	id = check_for_id(args.id,self.db)
         jit = JIT(self.db, self.db_table).check(id)
@@ -471,11 +462,11 @@ class Runtime(object):
     ## important to check for success
     ## on this command
     
-    if args.remove and is_success:
+    if check_arg(args,"remove") and is_success:
       if args.folder:
         shutil.rmtree(args.folder)
         lback_output("Directory successfully deleted..")
-    if args.delete:
+    if check_arg(args, "delete"):
       client = Client(self.port, args.host, dict(ip=args.host,port=self.port))
       if args.id:
 	id = check_for_id(args.id,self.db)
@@ -546,17 +537,17 @@ class Runtime(object):
           else: 
             lback_output("Could not find this backup")
       
-    if args.listall:
+    if check_arg(args,"listall"):
       rows = self.db(self.db[self.db_table].time > 0).select().as_list()
       lback_output("Full list of stored backups")
       for i in rows:
         lback_output("Backup", i)
-    if args.listusers:
+    if check_arg(args, "listusers"):
       rows = self.db( self.db[self.db_user_table].id > 0 ).select().as_list()
       lback_output("Full list of users")
       for i in rows:
 	 lback_output( "User", i )
-    if args.adduser:
+    if check_arg(args, "adduser"):
        currentUser = self.db( self.db[self.db_user_table].username == args.username ).select().first()
        if currentUser:
 	 lback_output("User with username %s already exists"%(currentUser.username))
@@ -569,7 +560,7 @@ class Runtime(object):
 	 	  lback_output("User with username  %s was added "%(newRecord.username))
 	  except Exception, ex:
 		  lback_output("Unable to add user %s (ERROR: %s)"%(args.username, str(ex)))
-    if  args.deluser:
+    if  check_arg(args, "deluser"):
 	  try:
 		 self.db(self.db[self.db_user_table].username==args.username).delete()
 		 self.db.commit()
