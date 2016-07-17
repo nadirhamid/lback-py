@@ -1,7 +1,6 @@
 
 from lback.record import Record
-from lback.lib.dal import DAL,Field
-from lback.utils import lback_backup_dir, lback_backup_ext, lback_output, check_for_id, Util
+from lback.utils import lback_backup_dir, lback_backup_ext, lback_db, lback_output, check_for_id, Util
 from lback.profiler import Profiler
 from lback.jit import JIT
 from lback.restore import Restore
@@ -12,20 +11,18 @@ from lback.rpc.events import Events,EventMessages,EventTypes,EventObjects,EventS
 from lback.rpc.meta import BackupMeta,RestoreMeta
 from lback.rpc.state import BackupState,RestoreState
 from lback.rpc.websocket import BackupServer, WebSocketServer
-from SimpleWebSocketServer import SimpleWebSocketServer,WebSocket
-
 
 import argparse
 import time
 import os
 import json
 class Runtime(object):
+  db = lback_db()
+  db_host= ''
+  db_table ='backups'
+  db_user_table='users'
+  db_user = ''
   def __init__(self, a):
-    self.db_name = ''
-    self.db_pass = ''
-    self.db_host = ''
-    self.db_table = 'backups'
-    self.db_user = ''
     self._settings()
     self._profiles()
     self.propagate()
@@ -37,6 +34,12 @@ class Runtime(object):
 
   def initv2(self, a):
     parser = argparse.ArgumentParser()
+    parser.add_argument("--adduser", action="store_true",
+	 help="Add a  new user to Lback",
+	default=False)
+    parser.add_argument("--deluser", action="store_true",
+	 help="Delete a user from Lback",
+	default=False)
     parser.add_argument("--backup", action="store_true",
 		help="Backup files and folders"
 		)
@@ -75,6 +78,8 @@ class Runtime(object):
     parser.add_argument("--listall", action="store_true",
 		help="List backups",
 		default=False)
+    parser.add_argument("--listusers", action="store_true",
+		default=False)	
     parser.add_argument("--version", default=False,
 		help="Select a version tag"
 		)
@@ -86,6 +91,8 @@ class Runtime(object):
     parser.add_argument("--graceful", default=False, action="store_true")
     parser.add_argument("--status", default=False, action="store_true")
     parser.add_argument("--settings", default=False, action="store_true")
+    parser.add_argument("--username", default="admin")
+    parser.add_argument("--password", default="admin")
  
     parser.add_argument("--snapshot", action="store_true",
 		help="Make a snapshot"
@@ -213,8 +220,7 @@ class Runtime(object):
   try to set up the database
   """
   def propagate(self):
-    self.db = DAL('sqlite://db.sql', folder='/usr/local/lback/')
-      
+
     self.db.define_table(
       self.db_table,
       Field('id'),
@@ -228,6 +234,13 @@ class Runtime(object):
       Field('local'),
       migrate=True
     )
+    self.db.define_table(
+	 self.db_user_table,
+	 Field('id'),
+	 Field('username'),
+	 Field('password'),
+	migrate=True
+   )
 
     
   def perform(self, args):
@@ -537,6 +550,31 @@ class Runtime(object):
       lback_output("Full list of stored backups")
       for i in rows:
         lback_output(i)
+    if args.listusers:
+      rows = self.db( self.db[self.db_user_table] ).select().as_list()
+      for i in rows:
+	 lback_output( i )
+    if args.adduser:
+       currentUser = self.db( self.db[self.db_user_table].username == args.username ).select().first()
+       if currentUser:
+	 lback_output("User with username %s already exists"%(currentUser.username))
+       else:
+	  try:
+		  newRecord = self.db[self.db_user_table].insert(
+				username=args.username,
+				password=args.password)
+	 	  lback_output("User with username  %s was added "%(newRecord.username))
+	  except Exception, ex:
+		  lback_output("Unable to add user %s (ERROR: %s)"%(args.username, str(ex)))
+    if  args.deluser:
+	  try:
+		 self.db(self.db[self.db__user_table].username==args.username).delete()
+		 lback_output("User was deleted successfully")
+  	  except Exception, ex:
+		 lback_output("User could not be deleted. (ERROR: %s)"%(str(ex)))
+	   	
+         
+	
   
   def _help(self):
     lback_output("""
@@ -600,5 +638,9 @@ JIT SPECIFIC
       self.profiles = json.loads(open("/usr/local/lback/profiles.json").read())
     elif os.path.isfile("../profiles.json"):
       self.profiles = json.loads(open("../profiles.json").read()) 
+  @staticmethod
+  def get_db( self ):
+     db = DAL('sqlite://db.sql', folder='/usr/local/lback/')
+     return db
 
  

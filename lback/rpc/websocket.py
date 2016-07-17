@@ -5,7 +5,6 @@ from multiprocessing import Queue
 from threading import Thread
 from  lback.rpc.events import EventStatuses, EventObjects
 
-from SimpleWebSocketServer import SimpleWebSocketServer, WebSocket
 from gevent import monkey; monkey.patch_all()
 import argparse
 import random
@@ -14,12 +13,13 @@ from gevent import monkey
 monkey.patch_all()
 import gevent
 import gevent.pywsgi
-from lback.utils import lback_output
+from lback.utils import lback_output, lback_auth_user
 from ws4py.server.geventserver import WebSocketWSGIApplication, WebSocketWSGIHandler, GEventWebSocketPool
 from ws4py import configure_logger
 from chaussette.backend._gevent import Server as GEventServer
 from chaussette.backend import register
 from chaussette.server import make_server
+import lback
 import time
 import socket
 
@@ -74,6 +74,11 @@ class  BackupServer( object ):
 	 	return self.send(RPCResponse(
 			False,
 			message=RPCErrorMessages.ERR_MESSAGE).serialize())
+         user = lback_auth_user( msg['auth']['username'], msg['auth']['password'] )
+         if not user:
+		 return self.send(RPCResponse(
+			False,
+			message=RPCErrorMessages.ERR_USER_AUTH).serialize())
 	 if msg['obj'] ==  EventObjects.OBJECT_BACKUP:
 		stateObj = BackupState( msg['backupId'] )
 	 elif msg['obj'] == EventObjects.OBJECT_RESTORE:

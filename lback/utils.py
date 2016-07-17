@@ -5,6 +5,7 @@ import zipfile
 from google.protobuf.message import Message
 from google.protobuf.descriptor import FieldDescriptor, Descriptor
 from google.protobuf.reflection import GeneratedProtocolMessageType
+from dal import DAL, Field
 
 import tarfile
 
@@ -110,9 +111,17 @@ def lback_backup_dir():
     return "/usr/local/lback"
 def lback_backup_ext():
     return ".tar.gz"
+def lback_db( ):
+  db = DAL('sqlite://db.sql', folder='/usr/local/lback/')
+  return db
+def lback_auth_user( username, password ):
+    db = lback_db()
+    user =  db(db[runtime.db_user_table].username==username & db[runtime.db_user_table].password==password).select().first()
+    return user
+   
+
   
 
-    
 class Util(object):
   def unzip(self, source_filename, dest_dir):
     with zipfile.ZipFile(source_filename) as zf:

@@ -6,6 +6,7 @@ class RPCErrorMessages(object):
    ERR_MESSAGE = "Message could not be deserialized"
    ERR_NOT_READY = "Backup not ready for action specified"
    ERR_NOT_FOUND = "The object was not found"
+   ERR_USER_AUTH = "The user could not be authenticated"
 class RPCSuccessMessages(object):
    CONNECTION_OK = "Connected to server"
    POLL_OK  = "Got poll progress"
@@ -15,7 +16,7 @@ def RPCMessage(message):
 		return json.loads( message )
 	except Exception, ex:
 		return False
-	
+
 
 class RPCResponse(object):
 	 def __init__(self, error, message="", data=[] ):

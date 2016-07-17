@@ -1,3 +1,5 @@
 pymysql==0.6.7
 protobuf==3.0.0a3
 pyee==1.0.1
+gevent
+redis
