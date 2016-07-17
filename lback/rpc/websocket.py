@@ -6,6 +6,7 @@ from threading import Thread
 from  lback.rpc.events import EventStatuses, EventObjects
 
 from gevent import monkey; monkey.patch_all()
+import importlib
 import argparse
 import random
 import os
@@ -64,8 +65,34 @@ class BackupServerStreamer(object):
 		self.client.send( backupState.serialize() )
 		time.sleep( 1 )
 	 self.client.send( backupState.serialize() )
-	 
+class  BackupServerBackup(object):
+	 def __init__(self, socket, msg):
+		  self.backupUuid = lback_uuid()
+	    	  self.socket = socket
+		  self.msg = msg
+	 def serveBackup(self):
+		  module = importlib.import_module("lback.runtime")
+		  self.socket.send(RPCResponse(
+			  True,
+			   message="",
+			  data= {"backupId": self.backupUuid})
+			)
+		  runtime = module.Runtime(["--backup", "--id", self.backupUuid, "--local", "--folder",  self.msg.folder] )
+class BackupServerRestore(object):
+       def __init__(self, socket, msg):
+	   self.restoreUuid = msg.backupId
+           self.socket = socket
+       def serveRestore( self ):
+            module = importlib.import_module("lback.runtime")
+	    runtime = module.Runtime(["--restore", "--local", "--id", self.restoreUuid])
+            self.socket.send(RPCResponse(
+			True,
+			 message="Restore complete"))
+			
+			
+    
 # event emitter for LBack RPC
+	
 # based on websockets
 class  BackupServer( object ):
    def received_message(self, message):
@@ -98,6 +125,20 @@ class  BackupServer( object ):
 		 thread = Thread(target=streamer.startStreaming, args=())
 	   	 thread.daemon = True
 		 thread.run()
+         elif msg['type'] == "backup":
+	         id = lback_uuid()
+	     	 backup =  BackupServerBakup(self, msg)
+	         thread = Thread(target=backup.serveBackup, args=())
+		 thread.daemon = True
+ 	     	 thread.run()
+         elif msg['type'] =="restore":
+		 restore = BackupServerRestore(self, msg)
+		 thread = Thread(target=restore.serveRestore, args=())
+		 thread.daemon =True
+		 thread.run()
+		  
+	 	 
+		 
 class WebSocketChaussette( GEventServer ):
    handler_class = WebSocketWSGIHandler
    def __init__(self,*args,**kwargs):

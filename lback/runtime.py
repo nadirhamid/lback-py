@@ -11,6 +11,7 @@ from lback.rpc.events import Events,EventMessages,EventTypes,EventObjects,EventS
 from lback.rpc.meta import BackupMeta,RestoreMeta
 from lback.rpc.state import BackupState,RestoreState
 from lback.rpc.websocket import BackupServer, WebSocketServer
+from dal import Field
 
 import argparse
 import time
@@ -549,11 +550,12 @@ class Runtime(object):
       rows = self.db(self.db[self.db_table].time > 0).select().as_list()
       lback_output("Full list of stored backups")
       for i in rows:
-        lback_output(i)
+        lback_output("Backup", i)
     if args.listusers:
-      rows = self.db( self.db[self.db_user_table] ).select().as_list()
+      rows = self.db( self.db[self.db_user_table].id > 0 ).select().as_list()
+      lback_output("Full list of users")
       for i in rows:
-	 lback_output( i )
+	 lback_output( "User", i )
     if args.adduser:
        currentUser = self.db( self.db[self.db_user_table].username == args.username ).select().first()
        if currentUser:
@@ -563,12 +565,14 @@ class Runtime(object):
 		  newRecord = self.db[self.db_user_table].insert(
 				username=args.username,
 				password=args.password)
+	          self.db.commit()
 	 	  lback_output("User with username  %s was added "%(newRecord.username))
 	  except Exception, ex:
 		  lback_output("Unable to add user %s (ERROR: %s)"%(args.username, str(ex)))
     if  args.deluser:
 	  try:
-		 self.db(self.db[self.db__user_table].username==args.username).delete()
+		 self.db(self.db[self.db_user_table].username==args.username).delete()
+		 self.db.commit()
 		 lback_output("User was deleted successfully")
   	  except Exception, ex:
 		 lback_output("User could not be deleted. (ERROR: %s)"%(str(ex)))
