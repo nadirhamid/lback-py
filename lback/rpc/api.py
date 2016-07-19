@@ -7,10 +7,12 @@ class RPCErrorMessages(object):
    ERR_NOT_READY = "Backup not ready for action specified"
    ERR_NOT_FOUND = "The object was not found"
    ERR_USER_AUTH = "The user could not be authenticated"
+   ERR_USER_AUTH_TOKEN = "The user token could not be validated"
 class RPCSuccessMessages(object):
    CONNECTION_OK = "Connected to server"
    POLL_OK  = "Got poll progress"
    POLL_ERROR = "Got poll progress"
+   AUTH_OK = "Authentication was successful"
 def RPCMessage(message):
 	try:
 		return json.loads( message )

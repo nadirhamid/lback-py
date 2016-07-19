@@ -4,6 +4,7 @@ from lback.rpc.state import BackupState
 from multiprocessing import Queue
 from threading import Thread
 from  lback.rpc.events import EventStatuses, EventObjects
+from lback.rpc.auth import Auth
 
 from gevent import monkey; monkey.patch_all()
 import importlib
@@ -129,34 +130,59 @@ class  BackupServer( object ):
 	 	return self.send(RPCResponse(
 			False,
 			message=RPCErrorMessages.ERR_MESSAGE).serialize())
-         user = lback_auth_user( msg['auth']['username'], msg['auth']['password'] )
-         if not user:
-		 return self.send(RPCResponse(
-			False,
-			message=RPCErrorMessages.ERR_USER_AUTH).serialize())
-	 if msg['type'] == "poll":
-		 stateObj = getObject(msg)
-		 state = getBackupState(stateObj)
-		 self.send(state.serialize())
-    	 elif msg['type'] == "stream":
-		 stateObj = getObject(msg)
-	 	 streamer = BackupServerStreamer(self, stateObj)
-		 thread = Thread(target=streamer.startStreaming, args=())
-	   	 thread.daemon = True
-		 thread.run()
-         elif msg['type'] == "backup":
-	         id = lback_uuid()
-	     	 backup =  BackupServerBackup(self, msg)
-	         thread = Thread(target=backup.serveBackup, args=())
-		 thread.daemon = True
- 	     	 thread.run()
-         elif msg['type'] =="restore":
-		 restore = BackupServerRestore(self, msg)
-		 thread = Thread(target=restore.serveRestore, args=())
-		 thread.daemon =True
-		 thread.run()
-		  
-	 	 
+
+         if msg['type'] == "auth":
+		 user = lback_auth_user( msg['auth']['username'], msg['auth']['password'] )
+		 if not user:
+			 return self.send(RPCResponse(
+				False,
+				message=RPCErrorMessages.ERR_USER_AUTH).serialize())
+		 auth = Auth()
+		 username = msg['auth']['username']
+		 password = msg['auth']['password']
+		 token = auth.getAuthenticationToken( username, password )
+		 try:
+		         auth.setAuthenticationToken( username, password,  token )
+			 return self.send(RPCResponse(	
+				False,
+				message=RPCSuccessMessages.AUTH_OK,
+				data=json.dumps({"token": token})
+				).serialize())
+		 except Exception, ex:
+			msg = RPCErrorMessages.ERR_USER_AUTH_TOKEN + " (ERROR: %s)"%( str(ex) )
+			return self.send(RPCResponse(	
+				True,
+				message=msg).serialize())
+	 else:
+		auth = Auth()	
+		if auth.isAuthenticated( msg['token'] ):
+			 if msg['type'] == "poll":
+				 stateObj = getObject(msg)
+				 state = getBackupState(stateObj)
+				 self.send(state.serialize())
+			 elif msg['type'] == "stream":
+				 stateObj = getObject(msg)
+				 streamer = BackupServerStreamer(self, stateObj)
+				 thread = Thread(target=streamer.startStreaming, args=())
+				 thread.daemon = True
+				 thread.run()
+			 elif msg['type'] == "backup":
+				 id = lback_uuid()
+				 backup =  BackupServerBackup(self, msg)
+				 thread = Thread(target=backup.serveBackup, args=())
+				 thread.daemon = True
+				 thread.run()
+			 elif msg['type'] =="restore":
+				 restore = BackupServerRestore(self, msg)
+				 thread = Thread(target=restore.serveRestore, args=())
+				 thread.daemon =True
+				 thread.run()
+		else:
+			return self.send(RPCResponse(
+				True,
+				message=RPCErrorMessages.ERR_USER_AUTH).serialize())
+			  
+			 
 		 
 class WebSocketChaussette( GEventServer ):
    handler_class = WebSocketWSGIHandler

@@ -1,6 +1,6 @@
 
 from lback.record import Record
-from lback.utils import lback_backup_dir, lback_backup_ext, lback_db, lback_output, check_for_id, Util
+from lback.utils import lback_backup_dir, lback_backup_ext, lback_db, lback_output, lback_uuid, check_for_id, Util
 from lback.profiler import Profiler
 from lback.jit import JIT
 from lback.restore import Restore
@@ -24,9 +24,9 @@ def check_arg(args, arg):
    
 class RuntimeArgs(object):
    def __init__(self,*args,**kwargs):
+     self.id= lback_uuid
      for i in kwargs.keys():
 	  setattr( self,  i, kwargs[i] )
-     self.id = ""
 class Runtime(object):
   db = lback_db()
   db_host= ''

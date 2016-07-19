@@ -26,6 +26,7 @@ lback/lib/dal.py
 lback/lib/odict.py
 lback/rpc/__init__.py
 lback/rpc/api.py
+lback/rpc/auth.py
 lback/rpc/events.py
 lback/rpc/meta.py
 lback/rpc/rpc.py

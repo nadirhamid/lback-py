@@ -1,6 +1,7 @@
 
 import time,socket
 import os
+import redis
 import  zipfile
 from google.protobuf.message import Message
 from google.protobuf.descriptor import FieldDescriptor, Descriptor
@@ -115,6 +116,15 @@ def lback_backup_ext():
     return ".tar.gz"
 def lback_uuid():
     return hashlib.sha1(str(time.time())).hexdigest()
+def lback_redis():
+    pool = redis.ConnectionPool(host="127.0.0.1", port=6379)
+    conn = redis.Redis(connection_pool=pool)
+    return conn
+def lback_token_alg( username, password ):
+    return hashlib.sha1(lback_token_key(username, password)).hexdigest()
+def lback_token_key( username, password ):
+    return str(time.time())+username+password
+
 def lback_db( ):
   db = DAL('sqlite://db.sql', folder='/usr/local/lback/')
   db.define_table(
