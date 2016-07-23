@@ -1,6 +1,6 @@
 
 from lback.record import Record
-from lback.utils import lback_backup_dir, lback_backup_ext, lback_db, lback_output, lback_uuid, check_for_id, Util
+from lback.utils import lback_backup_dir, lback_backup_ext, lback_db, lback_output, lback_uuid,lback_backups, lback_backup, check_for_id, Util
 from lback.profiler import Profiler
 from lback.jit import JIT
 from lback.restore import Restore
@@ -77,6 +77,12 @@ class Runtime(object):
 		help="Run the RPC server for Lback",
 		action="store_true",
 		default=False)
+    parser.add_argument("--rpcapi",
+		 help="Run LBack in RPC Mode",
+		action="store_true",
+		default=False)
+
+
     parser.add_argument("--name", help="Name for backup", default="Untitled Backup")
     parser.add_argument("--clean", action="store_true",
 		help="Clean backup on completion"
@@ -243,6 +249,21 @@ class Runtime(object):
     is_success = False
 
     state=BackupState( args.id )
+
+    if  check_arg(args, "rpcapi"):
+       result =  {}
+       if check_arg(args, "listbackups"):
+	    backups = lback_backups(page=args.page, amount=args.amount)
+	    result =  backups.as_list()
+       elif check_arg(args, "backup"):
+	    backup = lback_backup( id=args.id )
+	    result = backup.as_dict()
+       return  result
+	
+	    
+	
+
+
     if check_arg(args, "settings"):
       lback_output('Opening settings') 
       os.system('vim /usr/local/lback/settings.json')
@@ -299,6 +320,7 @@ class Runtime(object):
 	 #server = SimpleWebSocketServer("0.0.0.0",9000,BackupServer)
 	 #server.serveforever()
 	 server = WebSocketServer("0.0.0.0", 9000)
+
 	 
 	 
       

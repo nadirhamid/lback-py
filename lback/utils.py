@@ -125,6 +125,19 @@ def lback_token_alg( username, password ):
 def lback_token_key( username, password ):
     return str(time.time())+username+password
 
+def lback_obj_paginate( obj, page=0, amount=1000 ):
+    return obj.select( limitby= (0*amount, (0*amount)+amount ) )
+def lback_backups( page=0, amount=1000 ):
+     db = lback_db()
+     obj =  lback_obj_paginate( db( db["backups"] ), page=page, amount=amount)
+     return obj
+def lback_backup( id="" ):
+     db = lback_db()
+     obj =  db( db["backups"].id == id).select().first()
+     return obj
+
+
+
 def lback_db( ):
   db = DAL('sqlite://db.sql', folder='/usr/local/lback/')
   db.define_table(

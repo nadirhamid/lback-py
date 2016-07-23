@@ -33,6 +33,11 @@ from ws4py.websocket import EchoWebSocket, WebSocket
 
 
 emitter = EventEmitter()
+def  getRuntimeAndArgs():
+     module = importlib.import_module("lback.runtime")
+     return [module.Runtime,module.RuntimeArgs]
+
+   
 
 def getObject(msg):
 	 
@@ -172,6 +177,18 @@ class  BackupServer( object ):
 				 thread = Thread(target=backup.serveBackup, args=())
 				 thread.daemon = True
 				 thread.run()
+			 elif msg['type'] == "listbackups":
+				 runtime,args = getRuntimeAndArgs()
+				 rargs = args(**dict(dict(
+					 rpcapi=True).items() + msg['args'].items()))
+				 result = runtime(rargs).perform()
+				 self.send(RPCResponse(
+					False,
+					message=RPCSuccessMessages.RESULT_OK).serialize())
+	 	         elif msg['type'] == "backup":
+				 runtimeargs = getRuntimeAndArgs()
+				 ## TODO
+					 
 			 elif msg['type'] =="restore":
 				 restore = BackupServerRestore(self, msg)
 				 thread = Thread(target=restore.serveRestore, args=())

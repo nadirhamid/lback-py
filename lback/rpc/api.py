@@ -10,6 +10,7 @@ class RPCErrorMessages(object):
    ERR_USER_AUTH_TOKEN = "The user token could not be validated"
 class RPCSuccessMessages(object):
    CONNECTION_OK = "Connected to server"
+   RESULT_OK = "Result was retrieved"
    POLL_OK  = "Got poll progress"
    POLL_ERROR = "Got poll progress"
    AUTH_OK = "Authentication was successful"
