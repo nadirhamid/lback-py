@@ -250,20 +250,6 @@ class Runtime(object):
 
     state=BackupState( args.id )
 
-    if  check_arg(args, "rpcapi"):
-       result =  {}
-       if check_arg(args, "listbackups"):
-	    backups = lback_backups(page=args.page, amount=args.amount)
-	    result =  backups.as_list()
-       elif check_arg(args, "backup"):
-	    backup = lback_backup( id=args.id )
-	    result = backup.as_dict()
-       return  result
-	
-	    
-	
-
-
     if check_arg(args, "settings"):
       lback_output('Opening settings') 
       os.system('vim /usr/local/lback/settings.json')
@@ -569,26 +555,62 @@ class Runtime(object):
       lback_output("Full list of users")
       for i in rows:
 	 lback_output( "User", i )
+    if check_arg(args, "listbackups"):
+	    backups = lback_backups(page=args.page, amount=args.amount)
+	    result =  backups.as_list()
+	    return lback_output("", json= {
+			"error": False,
+			"data": result,
+			"message": "Listed backups" } )
+    elif check_arg(args, "getbackup"):
+	    backup = lback_backup( id=args.id )
+	    result = backup.as_dict()
+	    return lback_output("", json={
+			"error": False,
+			"data": result,
+			"message": "listed backup"})
+    elif check_arg(args, "getrestore"): ##
+       	pass
+    	  
+
     if check_arg(args, "adduser"):
        currentUser = self.db( self.db[self.db_user_table].username == args.username ).select().first()
        if currentUser:
-	 lback_output("User with username %s already exists"%(currentUser.username))
+	 return lback_output("User with username %s already exists"%(currentUser.username), json={
+			"error": True,
+			"message":"User with username exists"
+			})
        else:
 	  try:
 		  newRecord = self.db[self.db_user_table].insert(
 				username=args.username,
 				password=args.password)
 	          self.db.commit()
-	 	  lback_output("User with username  %s was added "%(newRecord.username))
+	 	  return lback_output("User with username  %s was added "%(newRecord.username), json={
+				"error": False,
+				"data": newRecord.as_dict(),
+				"message": "Got response"
+			} )
 	  except Exception, ex:
-		  lback_output("Unable to add user %s (ERROR: %s)"%(args.username, str(ex)))
+		  return lback_output("Unable to add user %s (ERROR: %s)"%(args.username, str(ex)), json={
+				"error": True,
+				"data": [],
+				"message": "Added new user successfully"
+			} )
     if  check_arg(args, "deluser"):
 	  try:
 		 self.db(self.db[self.db_user_table].username==args.username).delete()
 		 self.db.commit()
-		 lback_output("User was deleted successfully")
+		 return lback_output("User was deleted successfully", json={
+				"error": False,
+				"message": "Deleted user"
+			})
+
   	  except Exception, ex:
-		 lback_output("User could not be deleted. (ERROR: %s)"%(str(ex)))
+		 return lback_output("User could not be deleted. (ERROR: %s)"%(str(ex)), json={
+					"message": "User could not be deleted",
+					"error": True
+			})
 	   	
          
 	

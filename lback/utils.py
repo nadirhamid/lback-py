@@ -3,6 +3,7 @@ import time,socket
 import os
 import redis
 import  zipfile
+import json
 from google.protobuf.message import Message
 from google.protobuf.descriptor import FieldDescriptor, Descriptor
 from google.protobuf.reflection import GeneratedProtocolMessageType
@@ -110,6 +111,12 @@ def lback_output(*args,**kwargs):
   else:
     for i in args:
       print i
+  if  'json'  in kwargs.keys():
+      return kwargs['json']
+
+def lback_response(responseObject):
+   return responseObject
+
 def lback_backup_dir():
     return "/usr/local/lback"
 def lback_backup_ext():
@@ -129,8 +136,8 @@ def lback_obj_paginate( obj, page=0, amount=1000 ):
     return obj.select( limitby= (0*amount, (0*amount)+amount ) )
 def lback_backups( page=0, amount=1000 ):
      db = lback_db()
-     obj =  lback_obj_paginate( db( db["backups"] ), page=page, amount=amount)
-     return obj
+     return db( db.backups ).select( limitby= (0*amount, (0*amount)+amount ) )
+     #return obj
 def lback_backup( id="" ):
      db = lback_db()
      obj =  db( db["backups"].id == id).select().first()
@@ -163,6 +170,8 @@ def lback_db( ):
 
 
   return db
+def lback_rpc_serialize( msg ):
+     return json.dumps( msg )
 def lback_auth_user( username, password ):
     db = lback_db()
     user =  db((db.users.username==username) & (db.users.password==password)).select().first()

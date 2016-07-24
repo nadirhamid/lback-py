@@ -16,7 +16,7 @@ from gevent import monkey
 monkey.patch_all()
 import gevent
 import gevent.pywsgi
-from lback.utils import lback_output, lback_auth_user, lback_uuid
+from lback.utils import lback_output, lback_auth_user, lback_uuid, lback_rpc_serialize
 from ws4py.server.geventserver import WebSocketWSGIApplication, WebSocketWSGIHandler, GEventWebSocketPool
 from ws4py import configure_logger
 from chaussette.backend._gevent import Server as GEventServer
@@ -171,25 +171,24 @@ class  BackupServer( object ):
 				 thread = Thread(target=streamer.startStreaming, args=())
 				 thread.daemon = True
 				 thread.run()
-			 elif msg['type'] == "backup":
+			 elif msg['type'] == "dobackup":
 				 id = lback_uuid()
 				 backup =  BackupServerBackup(self, msg)
 				 thread = Thread(target=backup.serveBackup, args=())
 				 thread.daemon = True
 				 thread.run()
-			 elif msg['type'] == "listbackups":
-				 runtime,args = getRuntimeAndArgs()
-				 rargs = args(**dict(dict(
-					 rpcapi=True).items() + msg['args'].items()))
-				 result = runtime(rargs).perform()
-				 self.send(RPCResponse(
-					False,
-					message=RPCSuccessMessages.RESULT_OK).serialize())
-	 	         elif msg['type'] == "backup":
-				 runtimeargs = getRuntimeAndArgs()
-				 ## TODO
+			 elif msg['type'] in ['adduser', 'deluser', 'getbackup', 'listbackups', 'getrestore']:
+				runtime,runtimeargs=getRuntimeAndArgs()
+				rargs =  runtimeargs(**dict(
+					dict(type=msg['type']).items() +
+					msg['args'].items()))
+				setattr( rargs, msg['type'], True )
+				runtimeobject = runtime( rargs )
+				result = runtimeobject.perform()
+				self.send(  lback_rpc_serialize( result ) ) 
+				 
 					 
-			 elif msg['type'] =="restore":
+			 elif msg['type'] =="dorestore":
 				 restore = BackupServerRestore(self, msg)
 				 thread = Thread(target=restore.serveRestore, args=())
 				 thread.daemon =True

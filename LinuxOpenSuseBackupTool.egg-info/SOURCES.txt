@@ -31,4 +31,5 @@ lback/rpc/events.py
 lback/rpc/meta.py
 lback/rpc/rpc.py
 lback/rpc/state.py
+lback/rpc/utils.py
 lback/rpc/websocket.py
