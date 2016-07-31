@@ -72,6 +72,13 @@ Use with:
    - available as 
 ```lback --rpc```
 
+0.9.4
+- Add "type" and  "args" to all websocket messages 
+- Prototype version of RPC API 
+
+
+
+
 
 
 

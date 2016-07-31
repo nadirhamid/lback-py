@@ -58,12 +58,14 @@ def getBackupState(state):
 			msg = RPCResponse(
 				True,
 				message=RPCSuccessMessages.POLL_OK,
-				data=state
+				data=state,
+				msgtype="backup",
 				 )
 		 else:
 			msg = RPCResponse(
 				False,
-				message=RPCErrormessages.POLL_ERROR
+				message=RPCErrormessages.POLL_ERROR,
+				msgtype="backup"
 			 )
 		 return msg
  	 	 
@@ -121,7 +123,9 @@ class BackupServerRestore(object):
 		
             self.socket.send(RPCResponse(
 			True,
-			 message="Restore complete").serialize())
+			 message="Restore complete",
+			msgtype="restore",
+			).serialize())
 			
 			
     
@@ -134,13 +138,16 @@ class  BackupServer( object ):
 	 if not msg:
 	 	return self.send(RPCResponse(
 			False,
-			message=RPCErrorMessages.ERR_MESSAGE).serialize())
+			message=RPCErrorMessages.ERR_MESSAGE,
+			msgtype="backup",
+			).serialize())
 
          if msg['type'] == "auth":
 		 user = lback_auth_user( msg['auth']['username'], msg['auth']['password'] )
 		 if not user:
 			 return self.send(RPCResponse(
 				False,
+				msgtype="backup",
 				message=RPCErrorMessages.ERR_USER_AUTH).serialize())
 		 auth = Auth()
 		 username = msg['auth']['username']
@@ -151,29 +158,31 @@ class  BackupServer( object ):
 			 return self.send(RPCResponse(	
 				False,
 				message=RPCSuccessMessages.AUTH_OK,
+			 	msgtype="backup",
 				data=json.dumps({"token": token})
 				).serialize())
 		 except Exception, ex:
 			msg = RPCErrorMessages.ERR_USER_AUTH_TOKEN + " (ERROR: %s)"%( str(ex) )
 			return self.send(RPCResponse(	
 				True,
+				msgtype="backup",
 				message=msg).serialize())
 	 else:
 		auth = Auth()	
 		if auth.isAuthenticated( msg['token'] ):
 			 if msg['type'] == "poll":
-				 stateObj = getObject(msg)
+				 stateObj = getObject(msg['args'])
 				 state = getBackupState(stateObj)
 				 self.send(state.serialize())
 			 elif msg['type'] == "stream":
-				 stateObj = getObject(msg)
+				 stateObj = getObject(msg['args'])
 				 streamer = BackupServerStreamer(self, stateObj)
 				 thread = Thread(target=streamer.startStreaming, args=())
 				 thread.daemon = True
 				 thread.run()
 			 elif msg['type'] == "dobackup":
 				 id = lback_uuid()
-				 backup =  BackupServerBackup(self, msg)
+				 backup =  BackupServerBackup(self, msg['args'])
 				 thread = Thread(target=backup.serveBackup, args=())
 				 thread.daemon = True
 				 thread.run()
@@ -185,7 +194,7 @@ class  BackupServer( object ):
 				setattr( rargs, msg['type'], True )
 				runtimeobject = runtime( rargs )
 				result = runtimeobject.perform()
-				self.send(  lback_rpc_serialize( result ) ) 
+				self.send(  lback_rpc_serialize( msg['type'], result ) ) 
 				 
 					 
 			 elif msg['type'] =="dorestore":
@@ -196,7 +205,9 @@ class  BackupServer( object ):
 		else:
 			return self.send(RPCResponse(
 				True,
-				message=RPCErrorMessages.ERR_USER_AUTH).serialize())
+				message=RPCErrorMessages.ERR_USER_AUTH,
+				msgtype=msg['type']
+				).serialize())
 			  
 			 
 		 

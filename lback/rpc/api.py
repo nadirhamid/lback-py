@@ -22,13 +22,15 @@ def RPCMessage(message):
 
 
 class RPCResponse(object):
-	 def __init__(self, error, message="", data="{}"):
+	 def __init__(self, error, message="", data="{}", msgtype=""):
 		self.error=error
+		self.type =msgtype
 		self.message = message
 		self.data = json.loads(data)
 	 def serialize(self):
 		if self.error:
 			return json.dumps(dict(
+					type=self.type,
 					error=self.error,
 					message=self.message,
 					data=self.data))
