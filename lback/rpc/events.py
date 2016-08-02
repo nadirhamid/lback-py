@@ -23,7 +23,7 @@ class EventObjects(object):
 class EventTypes(object):
  	 TYPE_PROGRESS="PROGRESS"
 	 TYPE_STARTED="STARTED"
-	 TYPE_FINISHED ="FINISHEd"
+	 TYPE_FINISHED ="FINISHED"
 	 TYPE_ENDED="ENDED"
 class EventStatuses(object):
 	 STATUS_IN_PROGRESS="IN-PROGRESS"

@@ -48,16 +48,21 @@ class LBack_Protobuf_Message(Message):
   DESCRIPTOR  = lback_msg_descriptor
 
 ## Either short ID (7 char
-def check_for_id(id_initial, db):
+def check_for_id(id_initial, db, table='backups'):
+   if table=='backups': 
+	 dbobj=db.backups
+   else:
+	 dbobj=db.restores
+
    id = -1
    if  len(id_initial) == 7:
-	chunks=db(db.backups.uid.like(id_initial+"%")).select().first()
+	chunks=db(dbobj.uid.like(id_initial+"%")).select().first()
 	if chunks:
 	    id=chunks.uid
 	else:
 	    id=0
    elif len(id_initial) == 40:
-	 chunks = db(db.backusp.uid==id_initial).select().first()
+	 chunks = db(dbobj.uid==id_initial).select().first()
 	 if chunks:
 	      id=chunks.uid
 	 else:
@@ -136,11 +141,20 @@ def lback_obj_paginate( obj, page=0, amount=1000 ):
     return obj.select( limitby= (0*amount, (0*amount)+amount ) )
 def lback_backups( page=0, amount=1000 ):
      db = lback_db()
-     return db( db.backups ).select( limitby= (0*amount, (0*amount)+amount ) )
+     return db( db.backups ).select( limitby= (page*amount, (page*amount)+amount ) )
+ 
      #return obj
+def lback_restores( page=0, amount= 1000 ):
+    db =lback_db()
+    return db(db.restores).select(limitby=(page*amount, (page*amount)+amount) )
+
 def lback_backup( id="" ):
      db = lback_db()
      obj =  db( db["backups"].id == id).select().first()
+     return obj
+def lback_restore( id="" ):
+     db = lback_db()
+     obj = db( db.restores.id == id ).select().first()
      return obj
 
 
@@ -160,6 +174,14 @@ def lback_db( ):
       Field('local'),
       migrate=True
     )
+  db.define_table(
+	 "restores",
+	 Field("id"),
+	 Field("uid"),
+	 Field("time"),
+	 migrate=True
+	)
+	 
   db.define_table(
 	 "users",
 	 Field('id'),

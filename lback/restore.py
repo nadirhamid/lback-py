@@ -1,12 +1,25 @@
 
 from lback.utils import Util, lback_backup_dir, lback_backup_ext
+from lback.rpc.events import Events, EventStatuses, EventObjects, EventMessages
+from lback.rpc.meta import RestoreMeta
 
 class Restore(object):
-  def __init__(self, archive_loc, folder='./', clean=False):
+  def __init__(self, archive_loc, folder='./', clean=False, state=None):
     self.archive,self.status = archive_loc, 0
     self.clean = clean
     self.folder = folder
-  def run(self, local=False, uid=''):
+    self.state = state
+  def run(self, local=False, uid='', rid=''):
+   
+    if state: 
+	 meta = RestoreMeta(id=rid)
+	 state.setState(Events.getProgressEvent(
+		progress=0,
+		message=EventMessages.MSG_RESTORE_IN_PROGRESS,
+		status=EventStatuses.STATUS_IN_PROGRESS,
+		obj=EventObjects.OBJECT_RESTORE,
+		data=meta.serialize()))
+
     backupDir = lback_backup_dir()
     ext = lback_backup_ext()
     if local:

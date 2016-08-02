@@ -5,7 +5,7 @@ from multiprocessing import Queue
 from threading import Thread
 from  lback.rpc.events import EventStatuses, EventObjects
 from lback.rpc.auth import Auth
-
+from  lback.rpc.websocket_threads import BackupServerStreamer, BackupServerBackup, RestoreServerStreamer, BackupServerRestore, getObject, getObjState
 from gevent import monkey; monkey.patch_all()
 import importlib
 import argparse
@@ -38,97 +38,6 @@ def  getRuntimeAndArgs():
      return [module.Runtime,module.RuntimeArgs]
 
    
-
-def getObject(msg):
-	 
-         if msg['obj'] ==  EventObjects.OBJECT_BACKUP:
-		stateObj = BackupState( msg['backupId'] )
-	 elif msg['obj'] == EventObjects.OBJECT_RESTORE:
-		stateObj = RestoreState( msg['restoreId'] )
-         return stateObj
-   
-
-
-
-## all connections
-
-def getBackupState(state):
-		 state = state.getState()
-		 if state:
-			msg = RPCResponse(
-				True,
-				message=RPCSuccessMessages.POLL_OK,
-				data=state,
-				msgtype="backup",
-				 )
-		 else:
-			msg = RPCResponse(
-				False,
-				message=RPCErrormessages.POLL_ERROR,
-				msgtype="backup"
-			 )
-		 return msg
- 	 	 
-class BackupServerStreamer(object):
-   def __init__(self, client, stateObj):
-	 self.client = client
-	 self.stateObj = stateObj
-   def startStreaming(self):
-	 backupState= getBackupState(self.stateObj)
-	
-	 #message = self.stateObj.getState()
-	 while not backupState.error and (
-			backupState.data['status'] ==EventStatuses.STATUS_IN_PROGRESS
-			or
-			backupState.data['status']  == EventStatuses.STATUS_STARTED ):
-		self.client.send( backupState.serialize() )
-		time.sleep( 1 )
-	 self.client.send( backupState.serialize() )
-class  BackupServerBackup(object):
-	 def __init__(self, socket, msg):
-		  self.backupUuid = lback_uuid()
-	    	  self.socket = socket
-		  self.msg = msg
-	 def serveBackup(self):
-		  module = importlib.import_module("lback.runtime")
-		  msg = json.dumps({"backupId": self.backupUuid})
-		  self.socket.send(RPCResponse(
-			  True,
-			   message="",
-			  data=msg).serialize()
-			)
-		   
-		  args =  module.RuntimeArgs(backup=True, id=self.backupUuid,
-				local=True, 
-				name=self.msg['name'],
-				version=self.msg['version'],
-				folder=self.msg['folder'])
-		  runtime = module.Runtime(args)
-		  runtime.perform()
-		   
-		   
-class BackupServerRestore(object):
-       def __init__(self, socket, msg):
-	   self.restoreUuid = msg.backupId
-           self.socket = socket
-       def serveRestore( self ):
-            module = importlib.import_module("lback.runtime")
-	    args = module.RuntimeArgs(
-		restore=True,
-		local=True,
-		id=self.restoreUuid
-		)
-	    runtime = module.Runtime( args )
-	    runtime.perform()
-		
-            self.socket.send(RPCResponse(
-			True,
-			 message="Restore complete",
-			msgtype="restore",
-			).serialize())
-			
-			
-    
 # event emitter for LBack RPC
 	
 # based on websockets
@@ -170,13 +79,23 @@ class  BackupServer( object ):
 	 else:
 		auth = Auth()	
 		if auth.isAuthenticated( msg['token'] ):
-			 if msg['type'] == "poll":
+			 if msg['type'] == "pollbackup":
 				 stateObj = getObject(msg['args'])
-				 state = getBackupState(stateObj)
+				 state = getObjState("pollbackup", stateObj)
 				 self.send(state.serialize())
-			 elif msg['type'] == "stream":
+			 elif msg['type'] == "pollrestore":
+				 stateObj = getObject(msg['args'])
+				 state = getObjState("pollrestore",stateObj)
+				 self.send(state.serialize())
+			 elif msg['type'] == "streambackup":
 				 stateObj = getObject(msg['args'])
 				 streamer = BackupServerStreamer(self, stateObj)
+				 thread = Thread(target=streamer.startStreaming, args=())
+				 thread.daemon = True
+				 thread.run()
+			 elif msg['type'] == "streamrestore":
+				 stateObj = getObject(msg['args'])
+				 streamer = RestoreServerStreamer(self, stateObj)
 				 thread = Thread(target=streamer.startStreaming, args=())
 				 thread.daemon = True
 				 thread.run()
@@ -186,7 +105,7 @@ class  BackupServer( object ):
 				 thread = Thread(target=backup.serveBackup, args=())
 				 thread.daemon = True
 				 thread.run()
-			 elif msg['type'] in ['adduser', 'deluser', 'getbackup', 'listbackups', 'getrestore']:
+			 elif msg['type'] in ['adduser', 'deluser', 'getbackup', 'listbackups', 'listrestores', 'getrestore']:
 				runtime,runtimeargs=getRuntimeAndArgs()
 				rargs =  runtimeargs(**dict(
 					dict(type=msg['type']).items() +
