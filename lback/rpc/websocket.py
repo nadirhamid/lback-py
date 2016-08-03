@@ -48,7 +48,7 @@ class  BackupServer( object ):
 	 	return self.send(RPCResponse(
 			False,
 			message=RPCErrorMessages.ERR_MESSAGE,
-			msgtype="backup",
+			msgtype="error",
 			).serialize())
 
          if msg['type'] == "auth":
@@ -56,7 +56,7 @@ class  BackupServer( object ):
 		 if not user:
 			 return self.send(RPCResponse(
 				False,
-				msgtype="backup",
+				msgtype="auth",
 				message=RPCErrorMessages.ERR_USER_AUTH).serialize())
 		 auth = Auth()
 		 username = msg['auth']['username']
@@ -67,14 +67,14 @@ class  BackupServer( object ):
 			 return self.send(RPCResponse(	
 				False,
 				message=RPCSuccessMessages.AUTH_OK,
-			 	msgtype="backup",
+			 	msgtype="auth",
 				data=json.dumps({"token": token})
 				).serialize())
 		 except Exception, ex:
 			msg = RPCErrorMessages.ERR_USER_AUTH_TOKEN + " (ERROR: %s)"%( str(ex) )
 			return self.send(RPCResponse(	
 				True,
-				msgtype="backup",
+				msgtype="auth",
 				message=msg).serialize())
 	 else:
 		auth = Auth()	
@@ -113,11 +113,11 @@ class  BackupServer( object ):
 				setattr( rargs, msg['type'], True )
 				runtimeobject = runtime( rargs )
 				result = runtimeobject.perform()
-				self.send(  lback_rpc_serialize( msg['type'], result ) ) 
+				self.send(  lback_rpc_serialize( result ) ) 
 				 
 					 
 			 elif msg['type'] =="dorestore":
-				 restore = BackupServerRestore(self, msg)
+				 restore = BackupServerRestore(self, msg['args'])
 				 thread = Thread(target=restore.serveRestore, args=())
 				 thread.daemon =True
 				 thread.run()

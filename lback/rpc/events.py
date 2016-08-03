@@ -16,6 +16,7 @@ class EventMessages(object):
 	 MSG_RESTORE_IN_PROGRESS= ""
 	 MSG_RESTORE_STARTED = ""
 	 MSG_RESTORE_STOPPED = ""
+   	 MSG_RESTORE_FINISHED = ""
 
 class EventObjects(object):
 	 OBJECT_BACKUP= "Backup"

@@ -76,6 +76,11 @@ Use with:
 - Add "type" and  "args" to all websocket messages 
 - Prototype version of RPC API 
 
+0.9.5 RC1
+- Update WebSocket RPC for prototype release candidate
+
+ 
+
 
 
 

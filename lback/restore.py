@@ -10,8 +10,8 @@ class Restore(object):
     self.folder = folder
     self.state = state
   def run(self, local=False, uid='', rid=''):
-   
-    if state: 
+    state=self.state 
+    if state:
 	 meta = RestoreMeta(id=rid)
 	 state.setState(Events.getProgressEvent(
 		progress=0,

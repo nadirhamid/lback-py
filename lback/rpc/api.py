@@ -14,6 +14,11 @@ class RPCSuccessMessages(object):
    POLL_OK  = "Got poll progress"
    POLL_ERROR = "Got poll progress"
    AUTH_OK = "Authentication was successful"
+class RPCMessages(object):
+   LISTED_BACKUPS = "Listed backups"
+   LISTED_BACKUP = "Listed backup"
+   LISTED_RESTORES = "Listed restores"
+   LISTED_RESTORE = "Listed restore"
 def RPCMessage(message):
 	try:
 		return json.loads( message )

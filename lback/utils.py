@@ -178,6 +178,7 @@ def lback_db( ):
 	 "restores",
 	 Field("id"),
 	 Field("uid"),
+	 Field("backupId"),
 	 Field("time"),
 	 migrate=True
 	)

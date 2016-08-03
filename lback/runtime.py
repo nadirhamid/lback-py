@@ -8,6 +8,7 @@ from lback.backup import Backup
 from lback.client import Client
 from lback.server import Server
 from lback.rpc.events import Events,EventMessages,EventTypes,EventObjects,EventStatuses
+from lback.rpc.api import RPCMessages
 from lback.rpc.meta import BackupMeta,RestoreMeta
 from lback.rpc.state import BackupState,RestoreState
 from lback.rpc.websocket import BackupServer, WebSocketServer
@@ -251,9 +252,14 @@ class Runtime(object):
   def perform(self):
     args = self.args
     is_success = False
+    backupDir = lback_backup_dir()
+    ext = lback_backup_ext()
+    
 
-    state=BackupState( args.id )
-    rstate = RestoreState( args.rid )
+    if check_arg(args,"id"):
+        state=BackupState( args.id )
+    if check_arg(args,"rid"):
+        rstate = RestoreState( args.rid )
 
     if check_arg(args, "settings"):
       lback_output('Opening settings') 
@@ -396,17 +402,19 @@ class Runtime(object):
       if args.id:
 	id = check_for_id( args.id, self.db)
 
+ 	record = self.db.restores.insert(
+		backupId=id,
+		uid=args.rid,
+		time=time.time() ) 
+
 	meta = RestoreMeta(id=args.rid)
-	rstate.setState(Events.getStartedEvent(
+
+	rstate.setState(Events.getStartEvent(
 		status=EventStatuses.STATUS_STARTED,
 		message=EventMessages.MSG_RESTORE_STARTED,
 		obj=EventObjects.OBJECT_RESTORE,
 		data=meta.serialize()))
-	record = self.db.restore.insert(
-		backupId=id,
-		uid=args.rid,
-		time=time.time() ) 
-	if not args.version:
+	if not check_arg(args,"version"):
 	  r = self.db((self.db[self.db_table].uid == id)  | \
 		      (self.db[self.db_table].name == id) | \
 		(self.db[self.db_table].folder == id)).select().last()
@@ -438,7 +446,10 @@ class Runtime(object):
 	  
 	args.folder = r['folder']
 	args.local = r['local']
+	args.clean= check_arg(args,"clean")
 	ruid = r['uid']
+	archive_loc = backupDir+ruid+ext
+	  
 
 
 	## restore an s3 instance
@@ -458,20 +469,22 @@ class Runtime(object):
 	
 	if check_arg(args,"clean"):
 	  lback_output("Cleaning directory..")
+	 
 	  if not os.path.isdir(args.folder):
 	    os.makedirs(args.folder)
 	  
-	if check_arg(args,"local"):
+	if args.local:
 	  lback_output("Restore Ok -- Now restoring compartment")
-	  rst = Restore(False, args.folder, args.clean, state=rstate)
-	  rst.run(True, ruid, record.uid)  
+	   
+	  rst = Restore(archive_loc, folder=args.folder, clean=args.clean, state=rstate)
+	  rst.run(local=True, uid=ruid, rid=record.uid)  
 	  
 	  if rst.status:
 	    lback_output("Restore has been successfully performed")
 	    rstate.setState(Events.getFinishedEvent(**okargs))
  	  else:
 	    lback_output("Backup was unsuccessfull")
-	    rstate.setState(Events.getFinishedEvent(**errargs))
+	    rstate.setState(Events.getStopEvent(**errargs))
 		
 	else:
 	  lback_output("Pinging server for restore..")
@@ -482,15 +495,16 @@ class Runtime(object):
 	    fp = open(backupDir + ruid + ext, 'w+')
 	    fp.write(client.get().decode("utf-8").decode("hex"))
 	    fp.close()
-	    
-	    rst = Restore(backupDir + ruid + ext, args.folder, args.clean)
-	    rst.run(True, ruid, record.uid)
+	   
+	      
+	    rst = Restore(archive_loc, folder=args.folder,clean=args.clean,state=rstate)
+	    rst.run(local=False, uid=ruid, rid=record.uid)
 	    
 	    if rst.status:
 	      lback_output("Restore Successful")
 	      rstate.setState(Events.getFinishedEvent(**okargs))
 	    else:
-	      rstate.setState(Events.getFinishedEvent(**errargs)) 
+	      rstate.setState(Events.getStopvent(**errargs)) 
       else:
 	  lback_output("Please provide an ID")
 
@@ -595,13 +609,15 @@ class Runtime(object):
 	    backups = lback_backups(page=args.page, amount=args.amount)
 	    result =  backups.as_list()
 	    return lback_output("", json= {
+			"type": "listbackups",
 			"error": False,
 			"data": result,
 			"message": RPCMessages.LISTED_BACKUPS } )
     if  check_arg(args, "listrestores"):
 	 restores = lback_restores(args.page, amount=args.amount)
-	 result = backups.as_list()
+	 result = restores.as_list()
 	 return lback_output("", json={
+			"type": "listrestores",
 			"error": False,
 			"data": result,
 			"message": RPCMessages.LISTED_RESTORES } )
@@ -609,6 +625,7 @@ class Runtime(object):
 	    backup = lback_backup( id=args.id )
 	    result = backup.as_dict()
 	    return lback_output("", json={
+			"type": "getbackup",
 			"error": False,
 			"data": result,
 			"message":RPCMessages.LISTED_BACKUP } )
@@ -616,6 +633,7 @@ class Runtime(object):
 	  restore = lback_restore( id=args.rid )
 	  result =restore.as_dict()
 	  return lback_output("", json={
+			"type": "getrestore",
 			"error": False,
 			"data": result,
 			"message": RPCMessages.LISTED_RESTORE } )

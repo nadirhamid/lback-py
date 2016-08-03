@@ -1,5 +1,6 @@
 
 from lback.utils import lback_uuid
+from lback.rpc.api import RPCResponse
 import importlib
 import json
 
@@ -69,6 +70,7 @@ class BackupServerBackup(object):
 		  self.socket.send(RPCResponse(
 			  True,
 			   message="",
+			   msgtype="dobackup",
 			  data=msg).serialize()
 			)
 		   
@@ -87,11 +89,12 @@ class BackupServerRestore(object):
 	   self.msg =msg
        def serveRestore( self ):
             module = importlib.import_module("lback.runtime")
-	    json.dumps({"restoreId": self.restoreUuid})
+	    msg = json.dumps({"restoreId": self.restoreUuid})
 	    args = module.RuntimeArgs(
 		restore=True,
 		local=True,
-		id=self.msg['backupId']
+		id=self.msg['backupId'],
+		rid=self.restoreUuid
 		)
 	    runtime = module.Runtime( args )
 	    runtime.perform()
@@ -99,7 +102,8 @@ class BackupServerRestore(object):
             self.socket.send(RPCResponse(
 			True,
 			 message="Restore complete",
-			msgtype="restore",
+			msgtype="dorestore",
+			data=msg
 			).serialize())
 			
 			
