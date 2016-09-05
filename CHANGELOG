@@ -79,6 +79,11 @@ Use with:
 0.9.5 RC1
 - Update WebSocket RPC for prototype release candidate
 
+0.9.5 RC1 Update 1
+- Updates to WebSocket RPC components
++ Add request_id for Client/Server message passing
++ Add methods 'getuser', 'listusers', 'delbackup', 'delrestore'
+
  
 
 
