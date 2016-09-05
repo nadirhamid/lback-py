@@ -50,6 +50,7 @@ class  BackupServer( object ):
 			message=RPCErrorMessages.ERR_MESSAGE,
 			msgtype="error",
 			).serialize())
+	 request_id = msg['request_id']
 
          if msg['type'] == "auth":
 		 user = lback_auth_user( msg['auth']['username'], msg['auth']['password'] )
@@ -105,7 +106,7 @@ class  BackupServer( object ):
 				 thread = Thread(target=backup.serveBackup, args=())
 				 thread.daemon = True
 				 thread.run()
-			 elif msg['type'] in ['adduser', 'deluser', 'getbackup', 'listbackups', 'listrestores', 'getrestore']:
+			 elif msg['type'] in ['adduser', 'getuser', 'deluser', 'getbackup', 'delbackup', 'listbackups', 'listrestores', 'getrestore', 'delrestore']:
 				runtime,runtimeargs=getRuntimeAndArgs()
 				rargs =  runtimeargs(**dict(
 					dict(type=msg['type']).items() +
@@ -113,7 +114,8 @@ class  BackupServer( object ):
 				setattr( rargs, msg['type'], True )
 				runtimeobject = runtime( rargs )
 				result = runtimeobject.perform()
-				self.send(  lback_rpc_serialize( result ) ) 
+				response = RPCResponse(**dict( result.items() + dict(request_id=request_id,msgtype=msg['type'])))
+				self.send( response.serialize() )
 				 
 					 
 			 elif msg['type'] =="dorestore":

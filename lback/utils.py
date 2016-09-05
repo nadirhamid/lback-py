@@ -156,6 +156,12 @@ def lback_restore( id="" ):
      db = lback_db()
      obj = db( db.restores.id == id ).select().first()
      return obj
+def lback_users( page=0, amount= 1000 ):
+   db = lback_db()
+   return db(db.users).select(limitby(page*amount, (page*amount)+amount))
+def lback_user( id =""):
+   db = lback_db()
+   return db(db.users.id==id).select().first()
 
 
 

@@ -608,76 +608,82 @@ class Runtime(object):
     if check_arg(args, "listbackups"):
 	    backups = lback_backups(page=args.page, amount=args.amount)
 	    result =  backups.as_list()
-	    return lback_output("", json= {
-			"type": "listbackups",
-			"error": False,
-			"data": result,
-			"message": RPCMessages.LISTED_BACKUPS } )
+	    return {"message": RPCMessages.LISTED_BACKUPS, "data": result, "error": False }
     if  check_arg(args, "listrestores"):
 	 restores = lback_restores(args.page, amount=args.amount)
 	 result = restores.as_list()
-	 return lback_output("", json={
-			"type": "listrestores",
-			"error": False,
-			"data": result,
-			"message": RPCMessages.LISTED_RESTORES } )
+	 return {"message": RPCMessages.LISTED_RESTORES, "data": result, "error": False }
     elif check_arg(args, "getbackup"):
 	    backup = lback_backup( id=args.id )
 	    result = backup.as_dict()
-	    return lback_output("", json={
-			"type": "getbackup",
-			"error": False,
-			"data": result,
-			"message":RPCMessages.LISTED_BACKUP } )
+	    return {"message": RPCMessages.LISTED_BACKUP, "data": result, "error": False }
+    elif check_arg(args, "delbackup"):
+	  backup = lback_backup(id=args.id)
+	  try:
+		backup.delete()
+		return {"message": RPCMessages.DELETED_BACKUP,  "error": False }
+	  except Exception,ex:
+		return {"message": RPCMessages.DELETE_BACKUP_ERROR, "error": true }
+   
     elif check_arg(args, "getrestore"): ##
 	  restore = lback_restore( id=args.rid )
 	  result =restore.as_dict()
-	  return lback_output("", json={
-			"type": "getrestore",
-			"error": False,
-			"data": result,
-			"message": RPCMessages.LISTED_RESTORE } )
-    	  
+	  return {"message": RPCMessages.LISTED_RESTORe, "data": result, "error": False }
+    elif check_arg(args, "delrestore"):
+	  restore = lback_restore( id = args.rid )
+	  try:
+		restore.delete()
+		return {"message": RPCMessages.DELETED_RESTORE, "error": False }
+	  except Exception,ex:
+		return {"messages": RPCMessages.DELETE_RESTORE_ERROR, "error": True }
+	 
 
     if check_arg(args, "adduser"):
        currentUser = self.db( self.db[self.db_user_table].username == args.username ).select().first()
        if currentUser:
-	 return lback_output("User with username %s already exists"%(currentUser.username), json={
+	 return  {
 			"error": True,
-			"message":"User with username exists"
-			})
+			"message":RPCMessages.EXISTS_USER
+			}
        else:
 	  try:
 		  newRecord = self.db[self.db_user_table].insert(
 				username=args.username,
 				password=args.password)
 	          self.db.commit()
-	 	  return lback_output("User with username  %s was added "%(newRecord.username), json={
+	 	  return {
 				"error": False,
 				"data": newRecord.as_dict(),
-				"message": "Got response"
-			} )
+				"message": RPCMessages.CREATED_USER
+			}
 	  except Exception, ex:
-		  return lback_output("Unable to add user %s (ERROR: %s)"%(args.username, str(ex)), json={
+		  return {
 				"error": True,
 				"data": [],
-				"message": "Added new user successfully"
-			} )
+				"message": RPCMessages.CREATE_USER_ERROR
+			}
     if  check_arg(args, "deluser"):
 	  try:
 		 self.db(self.db[self.db_user_table].username==args.username).delete()
 		 self.db.commit()
-		 return lback_output("User was deleted successfully", json={
+		 return {
 				"error": False,
-				"message": "Deleted user"
-			})
+				"message": RPCMessages.USER_DELETED
+			}
 
   	  except Exception, ex:
-		 return lback_output("User could not be deleted. (ERROR: %s)"%(str(ex)), json={
-					"message": "User could not be deleted",
+		 return {
+					"message": RPCMessages.DELETE_USER_ERROR,
 					"error": True
-			})
-	   	
+			}
+    if check_arg(args, "getuser"):
+	 user = lback_user(id=args.id)
+	 result = user.as_dict()
+	 return {"message": RPCMessages.LISTED_USER,"data":user}
+    elif check_arg(args,"listusers"):
+	 users = lback_users(page=args.page,amount=args.amount)
+	 result = users.as_list()
+	 return {"message": RPCMessages.LISTED_USERS, "data": result}
          
 	
   
