@@ -37,8 +37,6 @@ import zipfile,os.path
 from datetime import timedelta
 from .runtime import Runtime
 
-LOCAL_BACKUP_DIR = '/usr/local/lback/backups/'
-
 
 if __name__ == '__main__':
   r = Runtime(sys.argv)

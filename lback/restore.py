@@ -10,16 +10,6 @@ class Restore(object):
     self.folder = folder
     self.state = state
   def run(self, local=False, uid='', rid=''):
-    state=self.state 
-    if state:
-	 meta = RestoreMeta(id=rid)
-	 state.setState(Events.getProgressEvent(
-		progress=0,
-		message=EventMessages.MSG_RESTORE_IN_PROGRESS,
-		status=EventStatuses.STATUS_IN_PROGRESS,
-		obj=EventObjects.OBJECT_RESTORE,
-		data=meta.serialize()))
-
     backupDir = lback_backup_dir()
     ext = lback_backup_ext()
     if local:

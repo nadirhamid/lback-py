@@ -1,0 +1,6 @@
+## Oneline Client API
+## use as follows
+## oneline-server {options}
+## oneline-server --help
+##
+python /usr/bin/olcli.py --server "$@" 

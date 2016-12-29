@@ -58,8 +58,8 @@ class Runtime(object):
 		help="Backup files and folders"
 		)
     parser.add_argument("--client", action="store_true",
-		help="Run LBack in client mode"
-			
+		help="Run LBack in client mode",
+		default=True	
 		)
     parser.add_argument("--restore", action="store_true",
 		help="Run a restore"
@@ -107,7 +107,7 @@ class Runtime(object):
     parser.add_argument("--version", default=False,
 		help="Select a version tag"
 		)
-    parser.add_argument("--local",default=False, action="store_true")
+    parser.add_argument("--local",default=True, action="store_true")
     parser.add_argument("--remote", default=False, action="store_true")
     parser.add_argument("--stop", default=False, action="store_true")
     parser.add_argument("--start", default=False, action="store_true")
@@ -342,11 +342,6 @@ class Runtime(object):
         lback_output("Gathering files.. this can take awhile")
         bkp = Backup(args.id, args.folder, state=state)
 	meta= BackupMeta(id=args.id)
-	state.setState( Events.getStartEvent(
-		 status=EventStatuses.STATUS_STARTED,
-		 message=EventMessages.MSG_BACKUP_STARTED,
-		 obj=EventObjects.OBJECT_BACKUP,
-		 data=meta.serialize()) )
         bkp.run()
         
         if bkp.status == 1:
@@ -371,11 +366,6 @@ class Runtime(object):
           
           if check_arg(args,"local"):
 
-	    state.setState(Events.getFinishedEvent(
-			status=EventStatuses.STATUS_FINISHED,
-			message=EventMessages.MSG_BACKUP_FINISHED,
-			obj=EventObjects.OBJECT_BACKUP,
-		   	data=meta.serialize()))	
             lback_output("Transaction ID: " + args.id)
             lback_output("Backup Ok -- Now saving to disk")
             lback_output("Local Backup has been successfully stored")
@@ -392,7 +382,7 @@ class Runtime(object):
                 lback_output("Transaction ID: " + args.id)
                 os.remove(bkp.get())
               else:
-                lback_output("Something went wrong on the server.. couldnt back that folder. Reverting changes")
+                lback_output("Something went wrong on the server.. couldnt back that folder. Reverting changes", type="ERROR")
             else:
               pass
         else:
@@ -410,11 +400,6 @@ class Runtime(object):
 
 	meta = RestoreMeta(id=args.rid)
 
-	rstate.setState(Events.getStartEvent(
-		status=EventStatuses.STATUS_STARTED,
-		message=EventMessages.MSG_RESTORE_STARTED,
-		obj=EventObjects.OBJECT_RESTORE,
-		data=meta.serialize()))
 	if not check_arg(args,"version"):
 	  r = self.db((self.db[self.db_table].uid == id)  | \
 		      (self.db[self.db_table].name == id) | \
@@ -442,7 +427,7 @@ class Runtime(object):
 
 	
 	if not r:
-	  lback_output("ERROR: Backup not found.")
+	  lback_output("Backup not found.", type="ERROR")
 	  return
 	  
 	args.folder = r['folder']
@@ -482,10 +467,8 @@ class Runtime(object):
 	  
 	  if rst.status:
 	    lback_output("Restore has been successfully performed")
-	    rstate.setState(Events.getFinishedEvent(**okargs))
  	  else:
-	    lback_output("Backup was unsuccessfull")
-	    rstate.setState(Events.getStopEvent(**errargs))
+	    lback_output("Backup was unsuccessfull", type="ERROR")
 		
 	else:
 	  lback_output("Pinging server for restore..")
@@ -503,9 +486,10 @@ class Runtime(object):
 	    
 	    if rst.status:
 	      lback_output("Restore Successful")
-	      rstate.setState(Events.getFinishedEvent(**okargs))
 	    else:
-	      rstate.setState(Events.getStopvent(**errargs)) 
+	      lback_output("Backup was unsuccessfull", type="ERROR")
+
+
       else:
 	  lback_output("Please provide an ID")
 
@@ -542,7 +526,7 @@ class Runtime(object):
             if not os.path.isfile(backupDir +  row.uid + ext):
               lback_output("Removed backup successfully")
             else:
-              lback_output("Could not delete backup device or resource busy")
+              lback_output("Could not delete backup device or resource busy", type="ERROR")
 
           self.db(self.db[self.db_table].uid == id).delete()
         else:
@@ -572,7 +556,7 @@ class Runtime(object):
                   if not os.path.isfile(backupDir +   theBackup.uid + ext):
                     lback_output("Removed the backup successfully")
                   else:
-                    lback_output("Could not delete the backup device or resource is busy")
+                    lback_output("Could not delete the backup device or resource is busy", type="ERROR")
     
                 self.db(self.db[self.db_table].uid == thisBackup).delete()
                 lback_output("removed this backup successfully")
@@ -589,7 +573,7 @@ class Runtime(object):
               if not os.path.isfile(backupDir +  row.uid + ext):
                 lback_output("Backup removed successfully" )
               else:
-                lback_output("Could not remove the backup" )
+                lback_output("Could not remove the backup" , type="ERROR")
             
             self.db(self.db[self.db_table].folder == args.folder).delete()
             lback_output("removed this backup successfully ")

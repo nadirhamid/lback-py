@@ -8,7 +8,8 @@ from google.protobuf.message import Message
 from google.protobuf.descriptor import FieldDescriptor, Descriptor
 from google.protobuf.reflection import GeneratedProtocolMessageType
 from dal import DAL, Field
-
+import tempfile
+import errno
 import hashlib
 import time
 import tarfile
@@ -109,10 +110,14 @@ def recvall(the_socket,timeout=''):
     result=''.join(total_data)
     return result
 def lback_output(*args,**kwargs):
-  show_tag=False if 'tag'in kwargs.keys() and not kwargs['tag'] else True
-  if show_tag:
+  type = kwargs['type'] if "type" in kwargs.keys() else "info"
+  tag = kwargs['tag'] if "tag" in  kwargs.keys() else True
+  if type=="ERROR":
+      from traceback import print_exc
+      print_exc()
+  if tag:
     for i in args:
-      print "LBACK: {0}".format( i )
+      print "LBACK[{0}]: {1}".format( type, i )
   else:
     for i in args:
       print i
@@ -122,8 +127,14 @@ def lback_output(*args,**kwargs):
 def lback_response(responseObject):
    return responseObject
 
+def lback_dir():
+    from os import getenv
+    return "{}/.lback".format(getenv("HOME"))
 def lback_backup_dir():
-    return "/usr/local/lback"
+    return lback_dir()+"/backups/"
+def lback_restore_dir():
+    return lback_dir()+"/restore/"
+
 def lback_backup_ext():
     return ".tar.gz"
 def lback_uuid():
@@ -216,6 +227,7 @@ class Util(object):
       for member in zf.infolist():
         # Path traversal defense copied from
         # http://hg.python.org/cpython/file/tip/Lib/http/server.py#l789
+	lback_output("Extracting %s"%(member.filename))
         try:
             words = member.filename.split('/')
             path = dest_dir
@@ -226,12 +238,12 @@ class Util(object):
               path = os.path.join(path, word)
             zf.extract(member, os.path.relpath(path))
         except Exception, e:
-            lback_output("Unable to extract {}".format(member.filename))
+            lback_output("Unable to extract {}".format(member.filename), type="ERROR")
   def untar(self, source_filename, dest_dir):
 	try:
  	  tarfile.TarFile( source_filename ).extractall( dest_dir )
 	except Exception, e:
-	   lback_output("Unable to extract {}".format(source_filename))
+	   lback_output("Unable to extract {}".format(source_filename), type="ERROR")
 	
 	
           
@@ -271,4 +283,21 @@ class Util(object):
       return float(totalSize)
   def getFileSize(self,path):
 	 return float(os.path.getsize( path ))
+
+def is_writable( path ):
+    try:
+	if os.path.isdir( path ):
+		testfile = tempfile.TemporaryFile(dir = path)
+		testfile.close()
+	else:
+		file = open( path, "a" )
+		file.close()
+		 
+
+    except OSError as e:
+        if e.errno == errno.EACCES:  # 13
+            return False
+        e.filename = path
+        raise
+    return True
  

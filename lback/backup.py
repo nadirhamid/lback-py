@@ -2,7 +2,7 @@
 
 import tarfile 
 import os
-from lback.utils import lback_backup_dir,lback_output, Util
+from lback.utils import lback_backup_dir,lback_backup_ext,lback_output, Util, is_writable
 from lback.archive import Archive
 from lback.rpc.events  import Events, EventMessages, EventStatuses, EventTypes, EventObjects
 from lback.rpc.meta import BackupMeta
@@ -17,7 +17,7 @@ class Backup(object):
     self.things = []
     self.record_id = record_id
     if client:
-      self.archive = Archive(backupDir + record_id, "w")
+      self.archive = Archive(backupDir + record_id+lback_backup_ext(), "w")
     self.status = 0
     self.folder = folder
     self.progress= 0
@@ -25,14 +25,6 @@ class Backup(object):
     meta = BackupMeta(**self.eventArgs)
     self.state = state
    
-    self.state.setState(
-		Events.getProgressEvent(
-			status=EventStatuses.STATUS_IN_PROGRESS,
-			data=meta.serialize(),
-			message=EventMessages.MSG_BACKUP_IN_PROGRESS,
-			obj=EventObjects.OBJECT_BACKUP) )
-
-			
 			
 
     
@@ -69,7 +61,13 @@ class Backup(object):
   def pack(self):
     lback_output( "Files have been gathered. Forming archive.." )
     for i in self.things:
-      self.archive.obj.write(i, os.path.relpath(i, self.folder))
+      as_file = os.path.relpath(i, self.folder)
+      if not is_writable( i ):
+	  lback_output("Permissions not set for %s"%( i ), type="ERROR" )
+      else:
+	  lback_output("Adding file %s as %s"%( i, as_file ) )
+          self.archive.obj.add(i, arcname=as_file ) 
+
     lback_output( "Files found: ")
     lback_output(self.things)
     #Util().archive(self.folder, self.get())
@@ -97,13 +95,6 @@ class Backup(object):
     args['progressPct']= "{0:.2f}".format((args['progressSz']/args['size'])*100)
 
     meta = BackupMeta(**args)
-    
-    self.state.setState( Events.getProgressEvent(
-			status=EventStatuses.STATUS_IN_PROGRESS,
-			obj=EventObjects.OBJECT_BACKUP,
-			data=meta.serialize(),
-			message=EventMessages.MSG_BACKUP_IN_PROGRESS))
-
     return prefix + anchor
   
 

@@ -30,10 +30,11 @@ import os
 import re
 
 import zipfile,os.path
+from .utils import lback_backup_dir
 
 
-LOCAL_BACKUP_DIR = './backups/'
-LOCAL_RESTORE_DIR = './restores/'
+LOCAL_BACKUP_DIR = lback_backup_dir()
+LOCAL_RESTORE_DIR = lback_restore_dir()
 
 class Backup(object):
 	def __init__(self, record_id, folder='./', client=True):
