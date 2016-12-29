@@ -1,6 +1,6 @@
 all:
-	pip install -r requirements.txt 
+	pip install --user -r requirements.txt 
 	python setup.py build
-	python setup.py install
-	lback --adduser --username "ROOT" --password "ROOT"
+	python setup.py install --user
+	$(HOME)/.lback/bin/lback --adduser --username "ROOT" --password "ROOT"
 

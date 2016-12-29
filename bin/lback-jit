@@ -1,1 +1,0 @@
-python /usr/bin/lback.py --just-in-time $1 $2 &

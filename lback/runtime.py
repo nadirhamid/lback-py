@@ -12,6 +12,7 @@ from lback.rpc.api import RPCMessages
 from lback.rpc.meta import BackupMeta,RestoreMeta
 from lback.rpc.state import BackupState,RestoreState
 from lback.rpc.websocket import BackupServer, WebSocketServer
+from os import getenv
 from dal import Field
 
 import argparse
@@ -729,11 +730,19 @@ JIT SPECIFIC
   def try_hard_to_find(self):
     pass
     
-  def _settings(self):
+  def _settings_v1(self):
     if os.path.isfile("/usr/local/lback/settings.json"):
       settings = json.loads(open("/usr/local/lback/settings.json").read())
     elif os.path.isfile("../settings.json"):
       settings = json.loads(open("../settings.json").read())
+    self._settings_gen(settings)
+  def _settings_v2(self):
+    path = "{}/.lback/settings.json".format(getenv("HOME")) 
+    self._settings_gen(json.loads(open(path).read()))
+  def _settings(self):
+    self._settings_v2()
+
+  def _settings_gen(self, settings):
     for i in settings.keys():
       setattr(self, i, settings[i])
       

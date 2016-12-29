@@ -22,23 +22,27 @@ class installsetup(install):
       os.remove(cwd+"/db.sql")
       db = open(cwd+"/db.sql","w+")
       db.close()
+      home_path = os.getenv("HOME")
     
         
-      if os.path.isdir("/usr/local/lback"):
-          shutil.rmtree("/usr/local/lback")
+      if os.path.isdir("%s/.lback"%(home_path)):
+          shutil.rmtree("%s/.lback"%(home_path))
 
-      os.makedirs("/usr/local/lback")
-      os.makedirs("/usr/local/lback/backups/")
+      os.makedirs("%s/.lback"%(home_path))
+      os.makedirs("%s/.lback/backups/"%(home_path))
+      os.makedirs("%s/.lback/bin/"%(home_path))
+	
+      lback_path = "%s/.lback/"%(home_path)
       links = [
-            (cwd+"/lback/main.py", "/usr/bin/lback.py"),
-            (cwd+"/lback/dal.py", "/usr/bin/dal.py"),
-            (cwd+"/lback/odict.py", "/usr/bin/odict.py"),
-            (cwd+"/bin/lback", "/usr/bin/lback"),
-            (cwd+"/bin/lback-client", "/usr/bin/lback-client"),
-            (cwd+"/bin/lback-server", "/usr/bin/lback-server"),
-            (cwd+"/settings.json", "/usr/local/lback/settings.json"),
-            (cwd+"/profiles.json", "/usr/local/lback/profiles.json"),
-            (cwd+"/db.sql", "/usr/local/lback/db.sql")
+            (cwd+"/lback/main.py", "%s/bin/lback.py"%(lback_path)),
+            (cwd+"/lback/dal.py", "%s/bin/dal.py"%(lback_path)),
+            (cwd+"/lback/odict.py", "%s/bin/odict.py"%(lback_path)),
+            (cwd+"/bin/lback", "%s/bin/lback"%(lback_path)),
+            (cwd+"/bin/lback-client", "%s/bin/lback-client"%(lback_path)),
+            (cwd+"/bin/lback-server", "%s/bin/lback-server"%(lback_path)),
+            (cwd+"/settings.json", "%s/settings.json"%(lback_path)),
+            (cwd+"/profiles.json", "%s/profiles.json"%(lback_path)),
+            (cwd+"/db.sql", "%s/db.sql"%(lback_path))
         ]
       for i in links:
 	 if os.path.islink(i[1]):
@@ -55,7 +59,7 @@ def get_version():
   return version
 
 def get_settings():
-  file = open("/usr/local/lback/settings.json", "r")
+  file = open(".lback/settings.json", "r")
   jsonobj = json.loads(file.read())
   file.close()
   return jsonobj

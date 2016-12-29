@@ -166,7 +166,8 @@ def lback_user( id =""):
 
 
 def lback_db( ):
-  db = DAL('sqlite://db.sql', folder='/usr/local/lback/')
+  from os import getenv
+  db = DAL('sqlite://db.sql', folder='{}/.lback/'.format( getenv('HOME') ))
   db.define_table(
       "backups",
       Field('id'),
