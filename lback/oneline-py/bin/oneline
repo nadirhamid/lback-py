@@ -1,5 +1,0 @@
-## oneline base
-## run as either client
-## or server
-## oneline --help
-python /usr/bin/olcli.py "$@"

@@ -1,6 +1,0 @@
-### oneline client
-### 
-## use as follows
-## oneline-client {options}
-## 
-python /usr/bin/olcli.py --client "$@"
