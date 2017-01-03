@@ -33,14 +33,8 @@ class installsetup(install):
 	
       lback_path = "%s/.lback/"%(home_path)
       links = [
-            (cwd+"/lback/main.py", "%s/bin/lback.py"%(lback_path)),
-            (cwd+"/lback/dal.py", "%s/bin/dal.py"%(lback_path)),
-            (cwd+"/lback/odict.py", "%s/bin/odict.py"%(lback_path)),
             (cwd+"/bin/lback", "%s/bin/lback"%(lback_path)),
-            (cwd+"/bin/lback-client", "%s/bin/lback-client"%(lback_path)),
-            (cwd+"/bin/lback-server", "%s/bin/lback-server"%(lback_path)),
             (cwd+"/settings.json", "%s/settings.json"%(lback_path)),
-            (cwd+"/profiles.json", "%s/profiles.json"%(lback_path)),
             (cwd+"/db.sql", "%s/db.sql"%(lback_path))
         ]
       for i in links:
@@ -56,17 +50,6 @@ def get_version():
   except:
     return None
   return version
-
-def get_settings():
-  file = open(".lback/settings.json", "r")
-  jsonobj = json.loads(file.read())
-  file.close()
-  return jsonobj
-   
-
-def finalizesetup():
-	pass
- 
 
 setup(name="LinuxOpenSuseBackupTool",
       version="0.1.0",

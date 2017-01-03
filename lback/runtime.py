@@ -9,6 +9,7 @@ from lback.server import Server
 from os import getenv
 from dal import Field
 
+import shutil
 import argparse
 import time
 import os
@@ -94,12 +95,6 @@ class Runtime(object):
     is_success = False
     backupDir = lback_backup_dir()
     ext = lback_backup_ext()
-    
-
-    if check_arg(args,"id"):
-        state=BackupState( args.id )
-    if check_arg(args,"rid"):
-        rstate = RestoreState( args.rid )
     if check_arg(args, "folder" ):
       self.size = str(Util().getFolderSize(args.folder))
     
@@ -121,8 +116,7 @@ class Runtime(object):
         pass
       else:
         lback_output("Gathering files.. this can take awhile")
-        bkp = Backup(args.id, args.folder, state=state)
-	meta= BackupMeta(id=args.id)
+        bkp = Backup(args.id, args.folder)
         bkp.run()
         
         if bkp.status == 1:
@@ -178,8 +172,6 @@ class Runtime(object):
 		backupId=id,
 		uid=args.rid,
 		time=time.time() ) 
-
-	meta = RestoreMeta(id=args.rid)
 
 	if not check_arg(args,"version"):
 	  r = self.db((self.db[self.db_table].uid == id)  | \
