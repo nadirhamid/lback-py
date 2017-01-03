@@ -21,13 +21,7 @@ class Backup(object):
     self.status = 0
     self.folder = folder
     self.progress= 0
-    self.eventArgs = dict(id=self.record_id, progressSz=self.progress,progressPct=self.progress, size=Util().getFolderSize(folder) )
-    meta = BackupMeta(**self.eventArgs)
     self.state = state
-   
-			
-
-    
 
   def raw(self, content):
     
@@ -89,12 +83,7 @@ class Backup(object):
   def _file(self, anchor, prefix=''):
     lback_output("added => " + prefix + anchor)
     self.things.append(prefix + anchor)
-    args = self.eventArgs
-		
-    args['progressSz'] += Util().getFileSize(prefix+anchor)
-    args['progressPct']= "{0:.2f}".format((args['progressSz']/args['size'])*100)
 
-    meta = BackupMeta(**args)
     return prefix + anchor
   
 
