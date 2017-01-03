@@ -1,7 +1,5 @@
 
 from lback.utils import Util, lback_backup_dir, lback_backup_ext
-from lback.rpc.events import Events, EventStatuses, EventObjects, EventMessages
-from lback.rpc.meta import RestoreMeta
 
 class Restore(object):
   def __init__(self, archive_loc, folder='./', clean=False, state=None):

@@ -1,7 +1,6 @@
 import os, os.path
 import sys
 import shutil
-from lback.lib.dal import DAL,Field
 import json
 import subprocess
 
@@ -78,7 +77,7 @@ setup(name="LinuxOpenSuseBackupTool",
       download_url = "https://pypi.python.org/pypi/",
       license="MIT",
       long_description="",
-      packages=["lback", "lback/lib/", "lback/rpc/"],
+      packages=["lback"],
       classifiers=[
           'Development Status :: 5 - Production/Stable',
           'License :: OSI Approved :: BSD License',

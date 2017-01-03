@@ -2,16 +2,10 @@
 from lback.record import Record
 from lback.utils import lback_backup_dir, lback_backup_ext, lback_db, lback_output, lback_uuid,lback_backups,  lback_backup, lback_restores, lback_restore,check_for_id, Util
 from lback.profiler import Profiler
-from lback.jit import JIT
 from lback.restore import Restore
 from lback.backup import Backup
 from lback.client import Client
 from lback.server import Server
-from lback.rpc.events import Events,EventMessages,EventTypes,EventObjects,EventStatuses
-from lback.rpc.api import RPCMessages
-from lback.rpc.meta import BackupMeta,RestoreMeta
-from lback.rpc.state import BackupState,RestoreState
-from lback.rpc.websocket import BackupServer, WebSocketServer
 from os import getenv
 from dal import Field
 
@@ -35,25 +29,12 @@ class Runtime(object):
   db_table ='backups'
   db_user_table='users'
   db_user = ''
-  def __init__(self, a):
+  def __init__(self, args):
     self._settings()
-    self._profiles()
-    ##self.propagate()
-    ##self.uid = Record().generate()
-    ##self.state = BackupState( self.uid )
-    self.args = a
+    self.args = args
 
-    ##self.initv2(a)
-
-
-  def initv2(self):
+  def init(self):
     parser = argparse.ArgumentParser()
-    parser.add_argument("--adduser", action="store_true",
-	 help="Add a  new user to Lback",
-	default=False)
-    parser.add_argument("--deluser", action="store_true",
-	 help="Delete a user from Lback",
-	default=False)
     parser.add_argument("--backup", action="store_true",
 		help="Backup files and folders"
 		)
@@ -79,15 +60,6 @@ class Runtime(object):
 		help="A restore ID for Lback",
 		default=Record().generate()
 	)
-    parser.add_argument("--rpc",
-		help="Run the RPC server for Lback",
-		action="store_true",
-		default=False)
-    parser.add_argument("--rpcapi",
-		 help="Run LBack in RPC Mode",
-		action="store_true",
-		default=False)
-
 
     parser.add_argument("--name", help="Name for backup", default="Untitled Backup")
     parser.add_argument("--clean", action="store_true",
@@ -102,31 +74,10 @@ class Runtime(object):
     parser.add_argument("--listall", action="store_true",
 		help="List backups",
 		default=False)
-    parser.add_argument("--listusers", action="store_true",
-		default=False)	
     parser.add_argument("--version", default=False,
 		help="Select a version tag"
 		)
     parser.add_argument("--local",default=True, action="store_true")
-    parser.add_argument("--remote", default=False, action="store_true")
-    parser.add_argument("--stop", default=False, action="store_true")
-    parser.add_argument("--start", default=False, action="store_true")
-    parser.add_argument("--restart", default=False, action="store_true")
-    parser.add_argument("--graceful", default=False, action="store_true")
-    parser.add_argument("--status", default=False, action="store_true")
-    parser.add_argument("--settings", default=False, action="store_true")
-    parser.add_argument("--username", default="admin")
-    parser.add_argument("--password", default="admin")
- 
-    parser.add_argument("--snapshot", action="store_true",
-		help="Make a snapshot"
-		)
-    parser.add_argument("--profiler", default=False, action="store_true")
-    parser.add_argument("--jit", default=False, action="store_true")
-    parser.add_argument("--port", default="8050")
-    parser.add_argument("--host", default="0.0.0.0")
-    
-  
     parser.add_argument("--encrypt", action="store_true",
 		help="Make an encrypted backup"	
 	)
@@ -138,118 +89,6 @@ class Runtime(object):
     self.args = parsed
     self.perform()
     
- 
-     
-
-
-    
-
-  def initv1(self):
-    a = self.args
-    backupDir = lback_backup_dir()
-    ext = lback_backup_ext()
-    
-    self.uid = Record().generate()
-    self.type = 'CLIENT'
-    self.help = 0
-    args.clean = 0
-    args.name = "N/A"
-    self.version = "1.0.0"
-    self.is_jit = False
-    self.s3 = False
-    self.version = False
-    
-
-    if not len(a) > 1:
-      self.help = True
-      self.type = ''
-
-    for _i in range(0, len(a)):
-      i = a[_i]
-      try:
-        j = a[_i + 1]
-      except:
-        j = a[_i]
-        
-      if i in ['-c', '--client']:
-        self.type = 'CLIENT'
-      if i in ['-s', '--server']:
-        self.type = 'SERVER'
-      if i in ['-h', '--help']:
-        self.help = True
-      if i in ['-b', '--backup']:
-        self.backup = True
-      if i in ['-r', '--restore']:
-        self.restore = True
-      if i in ['-i', '--ip']:
-        self.ip = j
-      if i in ['-p', '--port']:
-        self.port = j
-      if i in ['-x', '--compress']:
-        self.compress = True
-      if i in ['-e', '--encrypt']:
-        self.encrypt = True
-      if i in ['-l', '--local']:
-        self.local = True
-      if i in ['-f', '--folder']:
-        self.folder = os.path.abspath(j)+"/"
-      if i in ['-li', '--list']:
-        self.list = True
-      if i in ['-p', '--profiler']:
-        self.profiler = True
-        self.type = 'PROFILER'
-      if i in ['-rm', '--remove']:
-        self.remove = True
-      if i in ['-del', '--delete']:
-        self.delete = True
-      if i in ['-n', '--name']:
-        args.name = j
-      if i in ['-cl', '--clean']:
-        args.clean = True
-      if i in ['-id', '--id']:
-        self.id = j
-      if i in ['-g', '--graceful']:
-        self.graceful = True
-      if i in ['-re', '--restart']:
-        self.restart = True
-      if i in ['-st', '--start']:
-        self.start = True
-      if i in ['-sp', '--stop']:
-        self.stop = True
-      if i in ['-sn', '--snapshot']:
-        self.snapshot = True
-      if i in ['-v', '--version']:
-        self.version = j 
-        self.version = True
-      if i in ['-j', '--just-in-time', '-jit']:
-        self.jit = True
-        self.is_jit = True
-      if i in ['--settings']:
-        self.settings = True
-      if i in ['--stop-profiler']:
-        self.stop_profiler = True
-      if i in ['-st', '--status']:
-        self.status = True
-      if i in ['-s3', '--s3']:
-        self.s3 = True
-  
-    if self.help:
-      self._help()
-      return
-
-    if not self.version and 'restore' in dir(self):
-      self.version = "latest" 
-
-    lback_output("Running in {0} mode".format(self.type))
-    self.args = self
-    self.perform()
-  """
-  try to set up the database
-  """
-  def propagate(self):
-     pass
-
-        
   def perform(self):
     args = self.args
     is_success = False
@@ -261,67 +100,9 @@ class Runtime(object):
         state=BackupState( args.id )
     if check_arg(args,"rid"):
         rstate = RestoreState( args.rid )
-
-    if check_arg(args, "settings"):
-      lback_output('Opening settings') 
-      os.system('vim /usr/local/lback/settings.json')
-
-    if check_arg(args, "graceful"):
-      """ TODO add graceful shutdown """
-      lback_output("Stopping server..")
-      os.system("pkill -f 'python ./lback.py --server'")
-      os.system("pkill -f 'python /usr/bin/lback.py --server'")
-      exit()
-      return
-
-    if check_arg(args, "stop"):
-      lback_output("Stopping server..")
-
-      os.system("pkill -f 'python ./lback.py --server'")
-      os.system("pkill -f 'python /usr/bin/lback.py --server'")
-      quit()
-      return
-
-    if check_arg(args,"start"):
-      lback_output("Restarting server..")
-
-      os.system("pkill -f 'python ./lback.py --server'")
-      os.system("pkill -f 'python /usr/bin/lback.py --server'")
-      lback_output("Started new instance..")
-
-      time.sleep(1)
-      os.system("lback-server --start")
-      quit()
-      return
-    
-    if check_arg( args, "status" ):
-      lback_output("Status of SERVER:")
-      return
-
-    if check_arg(args, "profiler" ) and check_arg(args, "stop" ):
-      lback_output("Stopping profiler..")
-      os.system("pkill -f 'python ./lback.py --profiler'")
-      os.system("pkill -f 'python /usr/bin/lback.py --profiler'")
-      return
-    
     if check_arg(args, "folder" ):
       self.size = str(Util().getFolderSize(args.folder))
     
-    if check_arg(args, "jit" ) and check_arg(args, "stop" ):
-      lback_output("Stopping JIT instance..")
-      os.system("pkill -f 'python ./lback.py --jit'")
-      os.system("pkill -f 'python /usr/bin/lback.py --profiler'")
-      return
-
-    if check_arg(args, "rpc" ):
-	 lback_output("RPC - Starting WebSocket server on {0}:{1}".format( "0.0.0.0", "9000"))
-	 #server = SimpleWebSocketServer("0.0.0.0",9000,BackupServer)
-	 #server.serveforever()
-	 server = WebSocketServer("0.0.0.0", 9000)
-
-	 
-	 
-      
     if check_arg( args, "server" ):
       args.local = False
       if self.type == 'CLIENT':
@@ -492,16 +273,6 @@ class Runtime(object):
 
       else:
 	  lback_output("Please provide an ID")
-
-    if check_arg(args, "jit"):
-      if args.id:
-	id = check_for_id(args.id,self.db)
-        jit = JIT(self.db, self.db_table).check(id)
-      else:
-        lback_output("Starting a JIT instance on this backup")
-        os.system("lback-jit --id '{0}' > /dev/null 2>&1".format(args.id))
-
-
     ## important to check for success
     ## on this command
     
@@ -585,146 +356,10 @@ class Runtime(object):
       lback_output("Full list of stored backups")
       for i in rows:
         lback_output("Backup", i)
-    if check_arg(args, "listusers"):
-      rows = self.db( self.db[self.db_user_table].id > 0 ).select().as_list()
-      lback_output("Full list of users")
-      for i in rows:
-	 lback_output( "User", i )
-    if check_arg(args, "listbackups"):
-	    backups = lback_backups(page=args.page, amount=args.amount)
-	    result =  backups.as_list()
-	    return {"message": RPCMessages.LISTED_BACKUPS, "data": result, "error": False }
-    if  check_arg(args, "listrestores"):
-	 restores = lback_restores(args.page, amount=args.amount)
-	 result = restores.as_list()
-	 return {"message": RPCMessages.LISTED_RESTORES, "data": result, "error": False }
-    elif check_arg(args, "getbackup"):
-	    backup = lback_backup( id=args.id )
-	    result = backup.as_dict()
-	    return {"message": RPCMessages.LISTED_BACKUP, "data": result, "error": False }
-    elif check_arg(args, "delbackup"):
-	  backup = lback_backup(id=args.id)
-	  try:
-		backup.delete()
-		return {"message": RPCMessages.DELETED_BACKUP,  "error": False }
-	  except Exception,ex:
-		return {"message": RPCMessages.DELETE_BACKUP_ERROR, "error": true }
-   
-    elif check_arg(args, "getrestore"): ##
-	  restore = lback_restore( id=args.rid )
-	  result =restore.as_dict()
-	  return {"message": RPCMessages.LISTED_RESTORe, "data": result, "error": False }
-    elif check_arg(args, "delrestore"):
-	  restore = lback_restore( id = args.rid )
-	  try:
-		restore.delete()
-		return {"message": RPCMessages.DELETED_RESTORE, "error": False }
-	  except Exception,ex:
-		return {"messages": RPCMessages.DELETE_RESTORE_ERROR, "error": True }
-	 
 
-    if check_arg(args, "adduser"):
-       currentUser = self.db( self.db[self.db_user_table].username == args.username ).select().first()
-       if currentUser:
-	 return  {
-			"error": True,
-			"message":RPCMessages.EXISTS_USER
-			}
-       else:
-	  try:
-		  newRecord = self.db[self.db_user_table].insert(
-				username=args.username,
-				password=args.password)
-	          self.db.commit()
-	 	  return {
-				"error": False,
-				"data": newRecord.as_dict(),
-				"message": RPCMessages.CREATED_USER
-			}
-	  except Exception, ex:
-		  return {
-				"error": True,
-				"data": [],
-				"message": RPCMessages.CREATE_USER_ERROR
-			}
-    if  check_arg(args, "deluser"):
-	  try:
-		 self.db(self.db[self.db_user_table].username==args.username).delete()
-		 self.db.commit()
-		 return {
-				"error": False,
-				"message": RPCMessages.USER_DELETED
-			}
-
-  	  except Exception, ex:
-		 return {
-					"message": RPCMessages.DELETE_USER_ERROR,
-					"error": True
-			}
-    if check_arg(args, "getuser"):
-	 user = lback_user(id=args.id)
-	 result = user.as_dict()
-	 return {"message": RPCMessages.LISTED_USER,"data":user}
-    elif check_arg(args,"listusers"):
-	 users = lback_users(page=args.page,amount=args.amount)
-	 result = users.as_list()
-	 return {"message": RPCMessages.LISTED_USERS, "data": result}
-         
-	
-  
-  def _help(self):
-    lback_output("""
-usage: lback [options] required_input required_input2
-options:
--c, --client     Run a command as a client (required)
--s, --server     Initiate a server (required)
--b, --backup     Run a backup
--r, --restore    Run a restore
--f, --folder     Specify a folder (required *) for backups
--i, --id,        Specify an id (required *) for restores [ this can be a folder or name of backup ]
--n, --name       Name for backup (optional)
--rm, --remove    Remove a directory on backup
--x, --compress   Compress an archive (default)
--l, --list       Generate a full list of your backups
--i, --ip         Specify an ip (overridden by settings.json if found)
--p, --port       Specify a port (overridden by settings.json if found)
--h, --help       Print this text
--del, --delete   Delete a backup
--jit, --just-in-time  Just in time backups (read docs for more) [accepts singular file or document]
--v, --version specify a version to restore (for restores you can use: LATEST|OLDEST)
---settings       Opens settings in VIM
-
-SERVER SPECIFIC
--g, --graceful  Perform a graceful shutdown
--re, --restart  Restart the server
--st, --start    Start the server
--sp, --stop     Force a shutdown
--st, --status   Is the server running or stopped
-
-PROFILER SPECIFIC
--st, --start Start the profiler
---stop_profiler Stop the profiler
-
-JIT SPECIFIC
---st, --start starts a JIT instance
---stop        Stop the JIT instance
-    """, tag=False)
-  
- 
-  def try_hard_to_find(self):
-    pass
-    
-  def _settings_v1(self):
-    if os.path.isfile("/usr/local/lback/settings.json"):
-      settings = json.loads(open("/usr/local/lback/settings.json").read())
-    elif os.path.isfile("../settings.json"):
-      settings = json.loads(open("../settings.json").read())
-    self._settings_gen(settings)
-  def _settings_v2(self):
+  def _settings(self):
     path = "{}/.lback/settings.json".format(getenv("HOME")) 
     self._settings_gen(json.loads(open(path).read()))
-  def _settings(self):
-    self._settings_v2()
 
   def _settings_gen(self, settings):
     for i in settings.keys():
@@ -734,17 +369,4 @@ JIT SPECIFIC
     self.port = settings['client_port']
     self.server_ip = settings['server_ip']
     self.server_port = settings['server_port']
-    
     self.db_family = 'sqlite'
-        
-  def _profiles(self):
-    if os.path.isfile("/usr/local/lback/profiles.json"):
-      self.profiles = json.loads(open("/usr/local/lback/profiles.json").read())
-    elif os.path.isfile("../profiles.json"):
-      self.profiles = json.loads(open("../profiles.json").read()) 
-  @staticmethod
-  def get_db( self ):
-     db = DAL('sqlite://db.sql', folder='/usr/local/lback/')
-     return db
-
- 

@@ -7,7 +7,7 @@ import json
 from google.protobuf.message import Message
 from google.protobuf.descriptor import FieldDescriptor, Descriptor
 from google.protobuf.reflection import GeneratedProtocolMessageType
-from dal import DAL, Field
+from pydal import DAL, Field
 import tempfile
 import errno
 import hashlib

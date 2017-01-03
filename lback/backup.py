@@ -4,9 +4,6 @@ import tarfile
 import os
 from lback.utils import lback_backup_dir,lback_backup_ext,lback_output, Util, is_writable
 from lback.archive import Archive
-from lback.rpc.events  import Events, EventMessages, EventStatuses, EventTypes, EventObjects
-from lback.rpc.meta import BackupMeta
-
 
 class Backup(object):
   def __init__(self, record_id, folder='./', client=True, state=None):
