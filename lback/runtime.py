@@ -7,7 +7,7 @@ from lback.backup import Backup
 from lback.client import Client
 from lback.server import Server
 from os import getenv
-from dal import Field
+from pydal import Field
 
 import shutil
 import argparse
