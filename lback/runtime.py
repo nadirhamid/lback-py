@@ -2,8 +2,8 @@
 from lback.record import Record
 from lback.utils import lback_backup_dir, lback_backup_ext, lback_db, lback_output, lback_uuid,lback_backups,  lback_backup, lback_restores, lback_restore,check_for_id, Util
 from lback.profiler import Profiler
-from lback.restore import Restore
-from lback.backup import Backup
+from lback.restore import Restore, RestoreException
+from lback.backup import Backup, BackupException
 from lback.client import Client
 from lback.server import Server
 from os import getenv
@@ -113,43 +113,34 @@ class Runtime(object):
         
     if check_arg(args, "backup" ):
       if not args.folder:
-        pass
+        return lback_output("You must provide argument folder", type="ERROR")
       else:
         lback_output("Gathering files.. this can take awhile")
         bkp = Backup(args.id, args.folder)
-        bkp.run()
-        
-        if bkp.status == 1:
-
-          if check_arg(args, "version") and args.version == '1.0.0':
-            """ try to get previous version """
-            """ and up the patch by one """
-            r = self.db(self.db[self.db_table].folder == args.folder).select().last()
-
-            if r:
-              v = r['version'] 
-              cv = re.findall("\d\.\d\.(\d)", v)[0]
-              nv = int(cv) + 1
-              args.version = re.sub('\d$', str(nv), v)
-              
-
+	try:
+       	  bkp.run()
+       
+	  if check_arg(args, "version") and args.version == '1.0.0':
+	    """ try to get previous version """
+	    """ and up the patch by one """
+	    r = self.db(self.db[self.db_table].folder == args.folder).select().last()
+  	    if r:
+	      v = r['version'] 
+	      cv = re.findall("\d\.\d\.(\d)", v)[0]
+	      nv = int(cv) + 1
+	      args.version = re.sub('\d$', str(nv), v)
           self.db[self.db_table].insert(uid=args.id, time=time.time(), folder=args.folder, size=self.size, local=args.local,name=args.name, version=args.version)
           self.db.commit()
-        
-        
           is_success = True
-          
-          if check_arg(args,"local"):
-
-            lback_output("Transaction ID: " + args.id)
-            lback_output("Backup Ok -- Now saving to disk")
+	  if check_arg(args,"local"):
+            lback_output("Backup OK. Now saving to disk")
             lback_output("Local Backup has been successfully stored")
             lback_output("Transaction ID: " + args.id)
           else:
             fc = open(bkp.get(), 'r').read()
             client.run(cmd='BACKUP', folder=args.folder, uid=args.id, contents=fc, name=args.name,version=args.version,size=self.size)
             if client.status:
-              lback_output("Backup Ok -- Now transferring to server")
+              lback_output("Backup OK. Now transferring to server")
               
               fp = client.get()
               if len(re.findall("SUCCESS", fp)) > 0:
@@ -157,22 +148,17 @@ class Runtime(object):
                 lback_output("Transaction ID: " + args.id)
                 os.remove(bkp.get())
               else:
-                lback_output("Something went wrong on the server.. couldnt back that folder. Reverting changes", type="ERROR")
+                return lback_output("Something went wrong on the server.. couldnt back that folder. Reverting changes", type="ERROR")
             else:
-              pass
-        else:
-          pass
-        
+                return lback_output("Something went wrong on the server.. couldnt back that folder. Reverting changes", type="ERROR")
+	except BackupException, ex:
+	  return lback_output( repr( ex ), type="ERROR" )
+ 	except Exception, ex:
+	  return lback_output( repr( ex ), type="ERROR" )
     if check_arg(args, "restore"):
 
       if args.id:
 	id = check_for_id( args.id, self.db)
-
- 	record = self.db.restores.insert(
-		backupId=id,
-		uid=args.rid,
-		time=time.time() ) 
-
 	if not check_arg(args,"version"):
 	  r = self.db((self.db[self.db_table].uid == id)  | \
 		      (self.db[self.db_table].name == id) | \
@@ -200,32 +186,13 @@ class Runtime(object):
 
 	
 	if not r:
-	  lback_output("Backup not found.", type="ERROR")
-	  return
-	  
+	  return lback_output("Backup not found.", type="ERROR")
 	args.folder = r['folder']
 	args.local = r['local']
 	args.clean= check_arg(args,"clean")
 	ruid = r['uid']
 	archive_loc = backupDir+ruid+ext
 	  
-
-
-	## restore an s3 instance
-	#if s3 in dir(self) and self.s3:
-	#  pass
-
-        okargs = dict(
-		status=EventStatuses.STATUS_STOPPED,
-		message=EventMessages.MSG_RESTORE_FINISHED,
-		obj=EventObjects.OBJECT_RESTORE,
-		data=meta.serialize() )
-	errargs = dict(
-		status=EventStatuses.STATUS_ERR,
-		message=EventMessages.MSG_RESTORE_STOPPED,
-		obj=EventObjects.OBJECT_RESTORE,
-		data=meta.serialize() )
-	
 	if check_arg(args,"clean"):
 	  lback_output("Cleaning directory..")
 	 
@@ -233,22 +200,22 @@ class Runtime(object):
 	    os.makedirs(args.folder)
 	  
 	if args.local:
-	  lback_output("Restore Ok -- Now restoring compartment")
+	  lback_output("Restore OK. Now restoring compartment")
 	   
-	  rst = Restore(archive_loc, folder=args.folder, clean=args.clean, state=rstate)
-	  rst.run(local=True, uid=ruid, rid=record.uid)  
-	  
-	  if rst.status:
+	  rst = Restore(id, archive_loc, folder=args.folder, clean=args.clean)
+	  try:
+	    rst.run(local=True)
 	    lback_output("Restore has been successfully performed")
- 	  else:
-	    lback_output("Backup was unsuccessfull", type="ERROR")
-		
+	  except RestoreException, ex:
+	    return lback_output( repr(ex), type="ERROR" )
+	  except Exception, ex:
+	    return lback_output( repr(ex), type="ERROR" )
 	else:
 	  lback_output("Pinging server for restore..")
 	  client.run(cmd='RESTORE', folder=args.folder, uid=ruid, version=args.version)
 	  lback_output("Forming archive.. this can take some time")
 	  if client.status:
-	    lback_output("Restore Retrieval Ok -- now attempting to restore")
+	    lback_output("Restore Retrieval OK. Now attempting to restore")
 	    fp = open(backupDir + ruid + ext, 'w+')
 	    fp.write(client.get().decode("utf-8").decode("hex"))
 	    fp.close()

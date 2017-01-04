@@ -8,11 +8,13 @@ from google.protobuf.message import Message
 from google.protobuf.descriptor import FieldDescriptor, Descriptor
 from google.protobuf.reflection import GeneratedProtocolMessageType
 from pydal import DAL, Field
+from . import log
 import tempfile
 import errno
 import hashlib
 import time
 import tarfile
+
 
 
 def  make_lback_protobuf_field(name, type, type1, idx=0, tag=0, default_value=""):
@@ -110,19 +112,18 @@ def recvall(the_socket,timeout=''):
     result=''.join(total_data)
     return result
 def lback_output(*args,**kwargs):
-  type = kwargs['type'] if "type" in kwargs.keys() else "info"
+  type = kwargs['type'] if "type" in kwargs.keys() else "INFO"
   tag = kwargs['tag'] if "tag" in  kwargs.keys() else True
   if type=="ERROR":
       from traceback import print_exc
       print_exc()
-  if tag:
-    for i in args:
-      print "LBACK[{0}]: {1}".format( type, i )
-  else:
-    for i in args:
-      print i
-  if  'json'  in kwargs.keys():
-      return kwargs['json']
+  fn = getattr(log, type.lower())
+  for i in args:
+	fn( i )
+
+def lback_exception( ex ) :
+   return ex
+
 
 def lback_response(responseObject):
    return responseObject
@@ -188,26 +189,9 @@ def lback_db( ):
       Field('folder'),
       Field('size'),
       Field('version'),
-      Field('jit'),
       Field('local'),
       migrate=True
     )
-  db.define_table(
-	 "restores",
-	 Field("id"),
-	 Field("uid"),
-	 Field("backupId"),
-	 Field("time"),
-	 migrate=True
-	)
-	 
-  db.define_table(
-	 "users",
-	 Field('id'),
-	 Field('username'),
-	 Field('password'),
-	migrate=True
-   )
 
 
   return db
