@@ -9,22 +9,22 @@ class Client(object):
     self.status = 0
     self.server = server
   
-  def run(self, cmd='BACKUP', folder=None, uid='', contents='',name='',version='1.0.0',size=0, jit=False):
+  def run(self, cmd='BACKUP', folder=None, id='', contents='',name='',version='1.0.0',size=0, jit=False):
     s = socket.socket()
     size = str(size)
     #s.setblocking(0)
     s.connect((self.server['ip'], int(self.server['port'])))
-    #smessage = cmd + ', ' + 'UID: "' + uid + '", ' + 'FOLDER: "' + os.path.abspath(folder) + '", '  + 'JIT: "' + str(jit) +  '", ' +  "SIZE: " + size + ', ' + "VERSION: " + version + ', ' + "NAME: " + name + "\nCONTENTS: " + contents
+    #smessage = cmd + ', ' + 'UID: "' + id + '", ' + 'FOLDER: "' + os.path.abspath(folder) + '", '  + 'JIT: "' + str(jit) +  '", ' +  "SIZE: " + size + ', ' + "VERSION: " + version + ', ' + "NAME: " + name + "\nCONTENTS: " + contents
     smessage = LBack_Protobuf_Message()
     smessage.CMD = cmd
-    smessage.UID = uid
+    smessage.UID = id
     smessage.FOLDER = folder
     smessage.JIT = jit 
     smessage.SIZE = str(size)
     smessage.VERSION  =version
     smessage.NAME = name
     smessage.CONTENTS = contents.encode("hex").encode("utf-8")
-    lback_output("Message passing: (FOLDER: %s, SIZE: %s, UID: %s, JIT: %s, VERSION: %s)" % (folder, str(size), str(uid), str(jit), str(version)))
+    lback_output("Message passing: (FOLDER: %s, SIZE: %s, UID: %s, JIT: %s, VERSION: %s)" % (folder, str(size), str(id), str(jit), str(version)))
 
     s.sendall(smessage.SerializeToString())
     out = False

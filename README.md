@@ -19,20 +19,21 @@ Installing
 ------------------------------------------------------
 
 ```
-make  
+pip install -r requirements.txt
+python setup.py build
+python setup.py install --user
 ```
-    	
-
+    
 Regular Backups (Local)
 -------------------------------------------------------
 
 to run a local backup you can use:
 
 ```
-lback --client --local --backup --folder "/folder/"
+lback backup "./folder"
 ```
 
-this will instruct the program to backup the folder/" locally
+this will instruct the program to backup the ./folder" locally
 and when done send a success message telling you it is complete.
 
 Regular Restores (Local)
@@ -43,13 +44,7 @@ to have its id. Which can be found in the database or
 whenever a transaction is complete. For example:
 
 ```
-lback --client --local --restore --id "cb73eb0155af5a3da3bb4a63646b40201ab650c4"
-```
-
-OR short ids
-
-```
-lback --local --restore --id "cb73eb0"
+lback restore "./folder"
 ```
 
 
@@ -57,6 +52,27 @@ lback --local --restore --id "cb73eb0"
 this will fully restore this archive back to its initial
 state. Should it result in any error, it will throw a warning
 telling you what went wrong.
+
+Other Commands
+------------------------------------------------------
+
+Removing a Backup
+
+```
+lback rm "./folder"
+```
+
+Listing all Backups
+
+```
+lback ls
+```
+
+Moving a backup
+
+```
+lback mv ./folder ./new_folder
+```
 
 REMOTE backups:
 
@@ -82,11 +98,11 @@ the client will attempt to communicate on this tcip channel.
 The commands for a restore and backup are analagous to local. For example:
 
 ```
-lback --client --remote --backup --folder "/folder/"
+lback --remote --backup --folder "/folder/"
 ```
 
 ```
-lback --client --remote --restore --id "cb73eb0155af5a3da3bb4a63646b40201ab650c4"
+lback --remote --restore --id "cb73eb0"
 ```
 
 

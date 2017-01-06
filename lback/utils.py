@@ -1,7 +1,6 @@
 
 import time,socket
 import os
-import redis
 import  zipfile
 import json
 from google.protobuf.message import Message
@@ -9,6 +8,7 @@ from google.protobuf.descriptor import FieldDescriptor, Descriptor
 from google.protobuf.reflection import GeneratedProtocolMessageType
 from pydal import DAL, Field
 from . import log
+from termcolor import colored
 import tempfile
 import errno
 import hashlib
@@ -22,8 +22,8 @@ def  make_lback_protobuf_field(name, type, type1, idx=0, tag=0, default_value=""
 def make_lback_protobuf_descriptor(name, fields=[], enum_fields=[], containing_fields=[], nestable_fields=[]):
    return Descriptor(name, name, name, None, fields, nestable_fields, enum_fields, containing_fields)
 
-## UID, NAME, SIZE, VERSION, JIT, FOLDER, CONTENTS, CMD, VERSION, STATUS
-uid_field = make_lback_protobuf_field("UID", FieldDescriptor.TYPE_STRING, FieldDescriptor.CPPTYPE_STRING,1,1)
+## ID, NAME, SIZE, VERSION, JIT, FOLDER, CONTENTS, CMD, VERSION, STATUS
+id_field = make_lback_protobuf_field("ID", FieldDescriptor.TYPE_STRING, FieldDescriptor.CPPTYPE_STRING,1,1)
 name_field = make_lback_protobuf_field("NAME", FieldDescriptor.TYPE_STRING, FieldDescriptor.CPPTYPE_STRING,2,2)
 size_field = make_lback_protobuf_field("SIZE",  FieldDescriptor.TYPE_STRING, FieldDescriptor.CPPTYPE_STRING,3,3)
 jit_field =  make_lback_protobuf_field("JIT", FieldDescriptor.TYPE_BOOL, FieldDescriptor.CPPTYPE_BOOL,4,4,False)
@@ -34,7 +34,7 @@ version_field = make_lback_protobuf_field("VERSION",FieldDescriptor.TYPE_STRING,
 status_field = make_lback_protobuf_field("STATUS",FieldDescriptor.TYPE_STRING,FieldDescriptor.CPPTYPE_STRING,9,9)
 
 lback_msg_descriptor = make_lback_protobuf_descriptor("LBack_Protobuf_Message", [
-    uid_field,
+    id_field,
     name_field,
     size_field,
     jit_field,
@@ -49,36 +49,6 @@ lback_msg_descriptor = make_lback_protobuf_descriptor("LBack_Protobuf_Message", 
 class LBack_Protobuf_Message(Message):
   __metaclass__ = GeneratedProtocolMessageType 
   DESCRIPTOR  = lback_msg_descriptor
-
-## Either short ID (7 char
-def check_for_id(id_initial, db, table='backups'):
-   if table=='backups': 
-	 dbobj=db.backups
-   else:
-	 dbobj=db.restores
-
-   id = -1
-   if  len(id_initial) == 7:
-	chunks=db(dbobj.uid.like(id_initial+"%")).select().first()
-	if chunks:
-	    id=chunks.uid
-	else:
-	    id=0
-   elif len(id_initial) == 40:
-	 chunks = db(dbobj.uid==id_initial).select().first()
-	 if chunks:
-	      id=chunks.uid
-	 else:
-	      id=0
-   return throw_id_error_if_needed( id )
-
-def throw_id_error_if_needed( id ):
-   if id == 0:
-      raise Exception("Error record was not found")
-   elif id == -1:
-      raise Exception("Please provide a short hash (5 characters) or long (40 characters)")
-   return id
-
 
 def recvall(the_socket,timeout=''):
     #setup to use non-blocking sockets
@@ -114,12 +84,15 @@ def recvall(the_socket,timeout=''):
 def lback_output(*args,**kwargs):
   type = kwargs['type'] if "type" in kwargs.keys() else "INFO"
   tag = kwargs['tag'] if "tag" in  kwargs.keys() else True
+   
   if type=="ERROR":
       from traceback import print_exc
       print_exc()
   fn = getattr(log, type.lower())
   for i in args:
 	fn( i )
+def lback_print(text,color):
+   print colored( text, color )
 
 def lback_exception( ex ) :
    return ex
@@ -138,7 +111,7 @@ def lback_restore_dir():
 
 def lback_backup_ext():
     return ".tar.gz"
-def lback_uuid():
+def lback_id():
     return hashlib.sha1(str(time.time())).hexdigest()
 def lback_redis():
     pool = redis.ConnectionPool(host="127.0.0.1", port=6379)
@@ -182,14 +155,13 @@ def lback_db( ):
   db = DAL('sqlite://db.sql', folder='{}/.lback/'.format( getenv('HOME') ))
   db.define_table(
       "backups",
-      Field('id'),
-      Field('uid'),
-      Field('name'),
-      Field('time'),
-      Field('folder'),
-      Field('size'),
-      Field('version'),
-      Field('local'),
+      Field('lback_id', 'string'),
+      Field('name', 'string'),
+      Field('time', 'double'),
+      Field('folder', 'string'),
+      Field('size', 'double'),
+      Field('version', 'string'),
+      Field('local', 'boolean'),
       migrate=True
     )
 
@@ -244,27 +216,27 @@ class Util(object):
           if word in (os.curdir, os.pardir, ''): continue
           path = os.path.join(path, word)
         zf.write(member, path)
-  def getFolderSize(self,p,parent=True):
+  def get_folder_size(self,p,parent=True):
     if not os.path.isfile(p) and not os.path.isdir(p):
       return 0
     #from functools import partial
     
-    totalSize = 0 
+    total_size = 0 
     if os.path.isdir(p): 
       prepend = os.path.abspath(p)
       files = os.listdir(prepend)
-      thisFolderSize = 0 
+      this_folder_size = 0 
       for i in files:
         if os.path.isfile(prepend+"/"+i):
-          thisFolderSize +=  float(os.path.getsize( prepend+"/"+i ))
+          this_folder_size +=  float(os.path.getsize( prepend+"/"+i ))
         else:
-          thisFolderSize += float(self.getFolderSize(prepend+"/"+i,parent=False))
-      totalSize += thisFolderSize
+          this_folder_size += float(self.get_folder_size(prepend+"/"+i,parent=False))
+      total_size += this_folder_size
      
     if not parent:   
-      return float(thisFolderSize)
+      return float(this_folder_size)
     else:
-      return float(totalSize)
+      return float(total_size)
   def getFileSize(self,path):
 	 return float(os.path.getsize( path ))
 

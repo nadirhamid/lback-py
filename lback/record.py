@@ -1,10 +1,10 @@
 import hashlib
 import time
-from  lback.utils  import lback_uuid
+from  lback.utils  import lback_id
 
 class Record(object):
   def __init__(self):
     pass
   def generate(self):
-     return lback_uuid()
+     return lback_id()
 

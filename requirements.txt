@@ -1,2 +1,4 @@
 ordereddict==1.1
 pyDAL==16.11
+protobuf==3.0.0
+termcolor==1.1.0
