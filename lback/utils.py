@@ -6,9 +6,9 @@ import json
 from google.protobuf.message import Message
 from google.protobuf.descriptor import FieldDescriptor, Descriptor
 from google.protobuf.reflection import GeneratedProtocolMessageType
-from pydal import DAL, Field
 from . import log
 from termcolor import colored
+
 import tempfile
 import errno
 import hashlib
@@ -88,6 +88,8 @@ def lback_output(*args,**kwargs):
 	fn( i )
 
 def lback_error(exception):
+   from traceback import print_exc
+   print_exc()
    try:
      sys.stderr.write( "%s\n"%(str( exception )) ) 
      sys.exit(1) # Or something that calls sys.exit()
@@ -111,29 +113,38 @@ def lback_backup_dir():
 
 def lback_backup_ext():
     return ".tar.gz"
-def lback_id():
-    return hashlib.sha1(str(time.time())).hexdigest()
+def lback_id(salt=""):
+    return hashlib.sha1(salt).hexdigest()
 
 def lback_untitled():
    return "Untitled"
 
 def lback_db( ):
   from os import getenv
-  db = DAL('sqlite://db.sql', folder='{}/.lback/'.format( getenv('HOME') ))
-  db.define_table(
-      "backups",
-      Field('lback_id', 'string'),
-      Field('name', 'string'),
-      Field('time', 'double'),
-      Field('folder', 'string'),
-      Field('dirname', 'string'),
-      Field('size', 'double'),
-      Field('local', 'boolean'),
-      migrate=True
-    )
+  from .backup import BackupObject
+  import sqlite3
 
 
-  return db
+  def backup_row_factory(cursor, row):
+    obj =BackupObject 
+    for idx, col in enumerate(cursor.description):
+	setattr(obj, col[0], row[idx] )
+
+    return obj
+  connection = sqlite3.connect("%s/db.sql"%(lback_dir()))
+  connection.row_factory=backup_row_factory
+  cursor = connection.cursor() 
+  cursor.execute(r"""
+     CREATE TABLE IF NOT EXISTS backups (
+	 lback_id VARCHAR(255),
+	 name VARCHAR(50),
+	 time DOUBLE,
+	 folder VARCHAR(255),
+	 dirname VARCHAR(255),
+	 size VARCHAR(255)
+    ); """)
+  connection.commit() 
+  return connection
 def untar(source_filename, dest_dir):
     try:
        tarfile.TarFile( source_filename ).extractall( dest_dir )

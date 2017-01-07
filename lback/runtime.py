@@ -5,13 +5,13 @@ from lback.backup import Backup, BackupException
 from lback.client import Client
 from lback.server import Server
 from os import getenv
-from pydal import Field
 import glob
 import shutil
 import argparse
 import time
 import os
 import json
+import fnmatch
 
 
 class Runtime(object):
@@ -92,37 +92,56 @@ class Runtime(object):
     backup_dir = lback_backup_dir()
     ext = lback_backup_ext()
     db = lback_db()
+    cursor = db.cursor()
 
-    def get_all_globs(folders_or_ids):
+    def get_backup_filename( backup ):
+            splitted = backup.folder.split("/")
+	    filename = splitted[ len( splitted ) - 1 ]
+	    return  filename
+
+    def get_all_globs(folders_or_ids, as_restore=False):
 	full_list = []
 	for folder in folders_or_ids:
-	   glob_entries = glob.glob( folder )
+	   if as_restore:
+		## fnmatch is used by glob under the hood
+		## we need to make sure
+		## even non existant files get detected
+	 	current_dir = os.getcwd()
+	 	glob_entries = []
+		select_cursor = db.cursor().execute("SELECT * FROM  backups WHERE dirname = ?", (current_dir,))
+	  	backup = select_cursor.fetchone()
+		while backup:
+		    if fnmatch.fnmatch(get_backup_filename( backup ), folder):
+		  	glob_entries = glob_entries + [backup.folder]
+		    backup = select_cursor.fetchone()
+	   else:
+	   	glob_entries = glob.glob( folder )
 	   if len( glob_entries ) > 0:
 		full_list = full_list + glob_entries
 	   else:
-	   	full_list.append( folder )
+		full_list.append( folder )
         return full_list
 	 
 
 
     ## Either short ID (7 chars) OR long ID (40) chars OR folder
-    def check_for_row(id, return_all_matches=False):
+    def check_for_row(id):
        ## folder and name
        if args.name:
-		rows = db(db.backups.name == args.name)
-	        if not rows.count()>0:
+		select_cursor = db.cursor().execute("SELECT * FROM backups WHERE name = ?", (args.name,))
+		row = select_cursor.fetchone()
+	        if not row:
 			raise Exception("Backup with name not found")
        else:
-	        rows = db((db.backups.lback_id.like(id+"%") | \
-		      (db.backups.name == id) ))
-	        if not rows.count()>0:
-		    try_folder = os.path.abspath( id )
-		    rows = db(db.backups.folder == try_folder)
-       		if not rows.count()>0:
+		select_cursor = db.cursor().execute("SELECT * FROM backups WHERE lback_id LIKE ?",("%"+id+"%",))
+		row =select_cursor.fetchone()
+	        if not row:
+		   select_cursor = db.cursor().execute("SELECT * FROM backups WHERE folder = ?", (id,))
+		 
+		row =select_cursor.fetchone()
+       		if not row:
   	  	    raise Exception("Backup with Folder/ID not found")
-       if return_all_matches:
-	   return rows
-       return rows.select().last()
+       return row
     def check_parser(name):
       if  name in dir( args ) and getattr( args, name ):
         return True
@@ -130,18 +149,16 @@ class Runtime(object):
 
     def do_backup( rel_folder ): 
 	try:
-	  id =lback_id()
 	  folder = os.path.abspath( rel_folder )
+	  id =lback_id(folder)
 	  dirname = os.path.dirname( folder )
           bkp = Backup(id, folder)
        	  bkp.run()
 	  size = get_folder_size(folder)
-          db.backups.insert(lback_id=id,
-		 time=time.time(), 
-		 folder=folder,
-		 dirname=dirname,
-		 size=size, local=args.local,name=args.name)
-          db.commit()
+	  insert_cursor = db.cursor().execute("INSERT INTO backups (lback_id, time, folder, dirname, size, name) VALUES (?, ?, ?, ?, ?, ?)", 
+			(id, time.time(), folder, dirname, size, args.name,))
+
+
           lback_output("Backup OK. Now saving to disk")
           lback_output("Local Backup has been successfully stored")
           lback_output("Transaction ID: " + id)
@@ -170,23 +187,23 @@ class Runtime(object):
 	  lback_error(ex)	
     def do_rm(short_or_long_id):
 	try:
-	  rows = check_for_row(short_or_long_id, return_all_matches=True)
-	  folder = rows.select(db.backups.folder).first().folder
-	  for backup in rows.select(db.backups.lback_id):
-  	     os.remove(backup_dir + backup.lback_id +ext)
-	  rows.delete()
-	  db.commit()
+	  row = check_for_row(short_or_long_id)
+	  archive_loc = backup_dir + row.lback_id +ext
+	  lback_output("Removing %s" % (archive_loc))
+	  folder = row.folder
+  	  os.remove(backup_dir + row.lback_id +ext)
+	  delete_cursor =db.cursor().execute("DELETE FROM backups WHERE lback_id = ?", ( row.lback_id, ) )
 	except Exception,ex:
 	  lback_error(ex)	
     def do_ls():
       try:
         current_dir = os.getcwd()
-	rows = db(db.backups.dirname==current_dir)
-	lback_print("total %d"%(rows.count()), "white")
-        for backup in rows.select():
-	    splitted = backup.folder.split("/")
-	    filename = splitted[ len( splitted ) - 1 ]
+	select_cursor = db.cursor().execute("SELECT * FROM backups WHERE dirname = ?",( current_dir, ))
+        backup = select_cursor.fetchone()
+	while backup:
+	    filename = get_backup_filename( backup )
 	    lback_print("%s\t%s"%(filename, backup.lback_id), "white")
+	    backup = select_cursor.fetchone()
       except Exception, ex:
 	  lback_error(ex)	
     def do_mv(short_or_long_id):
@@ -194,14 +211,9 @@ class Runtime(object):
 	  row = check_for_row( short_or_long_id )
   	  folder = os.path.abspath( args.dst )
 	  dirname = os.path.dirname( folder )
-	
-	  row = db( db.backups.lback_id == row.lback_id )
-	  backup = row.select(db.backups.lback_id, db.backups.folder).first()
-          archive = backup_dir + backup.lback_id + ext
-	  row.update( 
-		folder=folder,
-		dirname=dirname )
-	  db.commit()
+          archive = backup_dir + row.lback_id + ext
+	  update_cursor = db.cursor().execute("UPDATE backups SET folder = ?, dirname = ? WHERE lback_id = ?",
+			(folder, dirname, row.lback_id))
 	  lback_output("Moved compartment successfully")
 	except Exception,ex:
 	  lback_error(ex)	
@@ -211,12 +223,15 @@ class Runtime(object):
 
     if check_parser("restore"):
 	 ids = args.id
-	 map(do_restore, get_all_globs(args.id))
+	 map(do_restore, get_all_globs(args.id, True))
     if check_parser("rm"):
 	 ids = args.id
-	 map(do_rm, get_all_globs(args.id))
+	 map(do_rm, get_all_globs(args.id, True))
             
     if check_parser("ls"):
 	 do_ls()
     if check_parser("mv"):
 	 do_mv(args.id)
+    db.commit()
+    db.close()
+

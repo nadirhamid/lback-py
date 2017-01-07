@@ -41,3 +41,8 @@ class Backup(object):
 
 class BackupException(Exception):
     pass
+
+class BackupObject(object):
+    def __init__(self):
+	 pass
+
