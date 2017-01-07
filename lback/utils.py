@@ -87,9 +87,10 @@ def lback_output(*args,**kwargs):
   for i in args:
 	fn( i )
 
-def lback_error(exception):
+def lback_error(exception, silent=False):
    from traceback import print_exc
-   print_exc()
+   if silent:
+     return
    try:
      sys.stderr.write( "%s\n"%(str( exception )) ) 
      sys.exit(1) # Or something that calls sys.exit()
@@ -126,9 +127,9 @@ def lback_db( ):
 
 
   def backup_row_factory(cursor, row):
-    obj =BackupObject 
+    obj =BackupObject()
     for idx, col in enumerate(cursor.description):
-	setattr(obj, col[0], row[idx] )
+	     setattr(obj, col[0], row[idx] )
 
     return obj
   connection = sqlite3.connect("%s/db.sql"%(lback_dir()))
@@ -185,4 +186,4 @@ def is_writable( path ):
         e.filename = path
         raise
     return True
- 
+

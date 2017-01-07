@@ -2,7 +2,7 @@
 
 import tarfile 
 import os
-from lback.utils import lback_backup_dir,lback_backup_ext,lback_output, is_writable
+from lback.utils import lback_backup_dir,lback_backup_ext,lback_output, is_writable, lback_db
 from lback.archive import Archive
 
 class Backup(object):
@@ -43,6 +43,38 @@ class BackupException(Exception):
     pass
 
 class BackupObject(object):
-    def __init__(self):
-	 pass
+  def __init__(self):
+       pass
+
+  def get_filename( self ):
+    splitted = self.folder.split("/")
+    filename = splitted[ len( splitted ) - 1 ]
+    return  filename
+
+  @staticmethod
+  def find_by_name( name ):
+       db = lback_db()
+       return db.cursor().execute("SELECT * FROM backups WHERE name = ?", (args.name,)).fetchone()
+  @staticmethod
+  def find_by_id( id ):
+       db = lback_db()
+       return db.cursor().execute("SELECT * FROM backups WHERE lback_id LIKE ?",("%"+id+"%",)).fetchone()
+  @staticmethod
+  def find_by_folder( folder ):
+       db = lback_db()
+       return db.cursor().execute("SELECT * FROM backups WHERE folder = ?", (os.path.abspath(folder),)).fetchone()
+  @staticmethod
+  def find_backup( id, by_name=False ):
+    if by_name:
+      backup = BackupObject.find_by_name( by_name )
+      if not backup:
+        raise Exception("Backup with name not found")
+    else:
+      backup = BackupObject.find_by_id(id)
+      if not backup:
+        backup = BackupObject.find_by_folder(id)
+      if not backup:
+        raise Exception("Backup with Folder/ID not found")
+    return backup
+
 
