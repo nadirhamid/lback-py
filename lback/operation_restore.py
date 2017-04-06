@@ -11,6 +11,7 @@ class OperationRestore(Operation):
       try:
         db = self.db
         args = self.args
+        lback_output("Trying to restore from backup..")
         backup = BackupObject.find_backup( short_or_long_id, by_name=args.name )
         if args.clean \
         and os.path.isdir(backup.folder):

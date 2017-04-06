@@ -28,6 +28,7 @@ def lback_output(*args,**kwargs):
 
 def lback_error(exception, silent=False):
    from traceback import print_exc
+   print_exc( exception )
    if silent:
      return
    try:
@@ -60,24 +61,33 @@ def lback_settings():
    return json.loads( file.read() ) 
 
 def lback_backup_path( id ):
-   return "{}/{}.{}".format(lback_backup_dir(), id, lback_backup_ext)
+   return "{}/{}{}".format(lback_backup_dir(), id, lback_backup_ext())
 
 def lback_backup( id ):
+   from .backup import BackupObject
    db = lback_db()
-   select_cursor = db.cursor().execute("SELECT * FROM backups WHERE lback_id = ? LIMIT 1", ( id, ))
-   return select_cursor.fetchone()
+   select_cursor = db.cursor()
+   select_cursor.execute("SELECT * FROM backups WHERE id = %s LIMIT 1", ( id, ))
+   db_backup = select_cursor.fetchone()
+   return BackupObject(db_backup)
 
 def lback_backup_chunked_file( id, chunk_size= 1024 ):
-   backup = lback_backup( id )
    file_handler = open( lback_backup_path( id ), "r+" )
-   while True:
-	content = file_handler.read( chunk_size )
+   content = file_handler.read( chunk_size )
+   while content:
 	yield content
+	content = file_handler.read( chunk_size )
 
-
-def lback_agnets():
-   select_cursor = db.cursor().execute("SELECT * FROM agents")
-   agents= select_cursor.fetchall()
+def lback_agents():
+   from .agent import AgentObject
+   db = lback_db()
+   select_cursor = db.cursor()
+   select_cursor.execute("SELECT * FROM agents")
+   db_agent = select_cursor.fetchone()
+   agents = []
+   while db_agent:
+	agents.append( AgentObject( db_agent ) )
+	db_agent = select_cursor.fetchone()
    return agents
 
 def lback_backup_remove( id ):
@@ -85,6 +95,9 @@ def lback_backup_remove( id ):
 
 def lback_id(salt=""):
     return hashlib.sha1("{}_{}".format(salt, uuid.uuid4())).hexdigest()
+def lback_validate_id(id):
+   if not len( id ) > 6:
+	raise Exception("ID should be more than 6 characters")
 
 def lback_untitled():
    return "Untitled"

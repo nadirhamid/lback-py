@@ -18,7 +18,6 @@ class OperationRm(Operation):
         lback_output("removing %s"%(backup.id))
         folder = backup.folder
   	client._run( self, backup )
-        lback_backup_remove(backup.id)
         delete_cursor =db.cursor().execute("DELETE FROM backups WHERE lback_id = %s", ( backup.id, ) )
         db.commit()
       except Exception,ex:

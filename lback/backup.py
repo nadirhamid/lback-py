@@ -3,7 +3,7 @@
 import tarfile 
 import os
 from .db import DBObject
-from .utils import lback_backup_dir,lback_backup_ext,lback_output, is_writable, lback_db
+from .utils import lback_backup_dir,lback_backup_ext,lback_output,lback_backup_path, is_writable, lback_db,  lback_backup_path
 from .archive import Archive
 
 class Backup(object):
@@ -11,12 +11,16 @@ class Backup(object):
     backup_dir = lback_backup_dir()
     self.things = []
     self.backup_id = backup_id
-    self.archive = Archive(backup_dir + backup_id+lback_backup_ext(), "w")
+    self.archive = Archive(lback_backup_path(backup_id), "w")
     self.folder = folder
   def run(self):
     self._folder( self.folder )
     self._pack()
-      
+  def write_chunked(self, gen):
+    path = lback_backup_path(self.backup_id ) 
+    with open( path, "a+" ) as backup_archive_file:
+	 for chunk in next(gen):
+	       backup_archive_file.write( chunk )
   def _pack(self):
     lback_output( "Files have been gathered. Forming archive.." )
     for i in self.things:
@@ -44,6 +48,7 @@ class BackupException(Exception):
     pass
 
 class BackupObject(DBObject):
+  TABLE = "backups"
   FIELDS = [
 	"id",
 	"name",
@@ -58,17 +63,16 @@ class BackupObject(DBObject):
   @staticmethod
   def find_by_name( name ):
        db = lback_db()
-       db_backup =db.cursor().execute("SELECT * FROM backups WHERE name = %s", (args.name,)).fetchone()
-       return BackupObject(db_backup)
-  @staticmethod
-  def find_by_id( id ):
-       db = lback_db()
-       db_backup = db.cursor().execute("SELECT * FROM backups WHERE lback_id LIKE %s",("%"+id+"%",)).fetchone()
+       select_cursor =db.cursor()
+       select_cursor.execute("SELECT * FROM backups WHERE name = %s", (args.name,))
+       db_backup = select_cursor.fetchone()
        return BackupObject(db_backup)
   @staticmethod
   def find_by_folder( folder ):
        db = lback_db()
-       db_backup = db.cursor().execute("SELECT * FROM backups WHERE folder = %s", (os.path.abspath(folder),)).fetchone()
+       select_cursor = db.cursor()
+       select_cursor.execute("SELECT * FROM backups WHERE folder = %s", (os.path.abspath(folder),))
+       db_backup = select_cursor.fetchone()
        return BackupObject(db_backup)
   @staticmethod
   def find_backup( id, by_name=False ):
