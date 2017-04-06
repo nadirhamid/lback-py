@@ -31,7 +31,7 @@ class OperationBackup(Operation):
         bkp = Backup(id, folder)
         bkp.run()
         size = get_folder_size(folder)
-        insert_cursor = db.cursor().execute("INSERT INTO backups (lback_id, time, folder, dirname, size, name) VALUES (?, ?, ?, ?, ?, ?)", 
+        insert_cursor = db.cursor().execute("INSERT INTO backups (lback_id, time, folder, dirname, size, name) VALUES (%s, %s, %s, %s, %s, %s)", 
           (id, time.time(), folder, dirname, size, args.name,))
         db.commit()
 
@@ -41,6 +41,8 @@ class OperationBackup(Operation):
         if args.remove:
           shutil.rmtree(folder)
           lback_output("Directory successfully deleted..")
+	backup_obj = BackupObject.find_backup( id )
+  	self.client._run( self, backup_obj )
       except BackupException, ex:
         lback_error(ex)	
       except Exception, ex:

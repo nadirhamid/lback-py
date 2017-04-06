@@ -1,14 +1,18 @@
 
-from lback.utils import lback_untitled, lback_backup_dir, lback_backup_ext, lback_db, lback_output, lback_error, lback_print, lback_id, get_folder_size
-from lback.restore import Restore, RestoreException
-from lback.backup import Backup, BackupException
-from lback.client import Client
-from lback.server import Server
-from lback.operation_backup import OperationBackup
-from lback.operation_restore import OperationRestore
-from lback.operation_ls import OperationLs
-from lback.operation_rm import OperationRm
-from lback.operation_mv import OperationMv
+from .utils import lback_untitled, lback_backup_dir, lback_backup_ext, lback_db, lback_output, lback_error, lback_print, lback_id,lback_settings, get_folder_size
+from .restore import Restore, RestoreException
+from .backup import Backup, BackupException
+from .operation_backup import OperationBackup
+from .operation_restore import OperationRestore
+from .operation_ls import OperationLs
+from .operation_rm import OperationRm
+from .operation_mv import OperationMv
+from .operation_relocate import OperationRelocate
+from .operation_agent_add import OperationAgentAdd
+from .operation_agent_rm import OperationAgentRm
+from .operation_agent_ls import OperationAgentLs
+
+from lback_grpc.client import Client
 from os import getenv
 import glob
 import shutil
@@ -24,7 +28,6 @@ class Runtime(object):
     untitled = lback_untitled()
     parser = argparse.ArgumentParser()
     sub_parser = parser.add_subparsers()
-   
      
     backup_parser = sub_parser.add_parser("backup", help="Backup files and folders") 
     backup_parser.add_argument("folder", help="Select a folder", nargs="*")
@@ -54,6 +57,29 @@ class Runtime(object):
     mv_parser.set_defaults(mv=True)
     mv_parser.set_defaults(name=False)
 
+    relocate_parser = sub_parser.add_parser("mv", help="Relocate a certain backup")
+    relocate_parser.add_argument("id", help="Select the ID")
+    relocate_parser.add_argument("src", help="Select the Source")
+    relocate_parser.add_argument("dst", help="Select the Dest")
+    relocate_parser.set_defaults(relocate=True)
+    relocate_parser.set_defaults(name=False)
+
+    agent_add_parser = sub_parser.add_parser("agent-add", help="ADD, DELETE agents")
+    agent_add_parser.add_argument("host", help="host of agent")
+    agent_add_parser.add_argument("port", help="port of agent")
+    agent_add_parser.set_defaults(agent_add=True)
+    agent_add_parser.set_defaults(name=False)
+
+    agent_rm_parser = sub_parser.add_parser("agent-rm", help="ADD, DELETE agents")
+    agent_rm_parser.add_argument("id", help="ID of agent")
+    agent_rm_parser.set_defaults(agent_rm=True)
+    agent_rm_parser.set_defaults(name=False)
+
+
+    agent_ls_parser = sub_parser.add_parser("agent-ls", help="ADD, DELETE agents")
+    agent_ls_parser.set_defaults(agent_ls=True)
+    agent_ls_parser.set_defaults(name=False)
+
     self.args = parser.parse_args()
   def run(self):
     args = self.args
@@ -63,16 +89,25 @@ class Runtime(object):
       if  name in dir( args ) and getattr( args, name ):
         return True
       return False
+    client = Client()
+    operation_args = [ args, client, db ]
     if check_parser("backup"):
-      operation = OperationBackup(args, db)
+      operation = OperationBackup(*operation_args)
     if check_parser("restore"):
-      operation = OperationRestore(args, db)
+      operation = OperationRestore(*operation_args)
     if check_parser("rm"):
-      operation = OperationRm(args, db)
+      operation = OperationRm(*operation_args)
     if check_parser("ls"):
-      operation = OperationLs(args, db)
+      operation = OperationLs(*operation_args)
     if check_parser("mv"):
-      operation = OperationMv(args, db)
+      operation = OperationMv(*operation_args)
+    if check_parser("relocate"):
+      operation = OperationRelocate(*operation_args)
+    if check_parser("agent_add"):
+      operation = OperationAgentAdd(*operation_args)
+    if check_parser("agent_rm"):
+      operation = OperationAgentRm(*operation_args)
+    if check_parser("agent_ls"):
+      operation = OperationAgentLs(*operation_args)
     operation.run()
     db.close()
-

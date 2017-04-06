@@ -2,8 +2,9 @@
 
 import tarfile 
 import os
-from lback.utils import lback_backup_dir,lback_backup_ext,lback_output, is_writable, lback_db
-from lback.archive import Archive
+from .db import DBObject
+from .utils import lback_backup_dir,lback_backup_ext,lback_output, is_writable, lback_db
+from .archive import Archive
 
 class Backup(object):
   def __init__(self, backup_id, folder):
@@ -42,27 +43,33 @@ class Backup(object):
 class BackupException(Exception):
     pass
 
-class BackupObject(object):
-  def __init__(self):
-       pass
-
+class BackupObject(DBObject):
+  FIELDS = [
+	"id",
+	"name",
+	"time",
+	"folder",
+	"dirname",
+	"size" ]
   def get_filename( self ):
     splitted = self.folder.split("/")
     filename = splitted[ len( splitted ) - 1 ]
     return  filename
-
   @staticmethod
   def find_by_name( name ):
        db = lback_db()
-       return db.cursor().execute("SELECT * FROM backups WHERE name = ?", (args.name,)).fetchone()
+       db_backup =db.cursor().execute("SELECT * FROM backups WHERE name = %s", (args.name,)).fetchone()
+       return BackupObject(db_backup)
   @staticmethod
   def find_by_id( id ):
        db = lback_db()
-       return db.cursor().execute("SELECT * FROM backups WHERE lback_id LIKE ?",("%"+id+"%",)).fetchone()
+       db_backup = db.cursor().execute("SELECT * FROM backups WHERE lback_id LIKE %s",("%"+id+"%",)).fetchone()
+       return BackupObject(db_backup)
   @staticmethod
   def find_by_folder( folder ):
        db = lback_db()
-       return db.cursor().execute("SELECT * FROM backups WHERE folder = ?", (os.path.abspath(folder),)).fetchone()
+       db_backup = db.cursor().execute("SELECT * FROM backups WHERE folder = %s", (os.path.abspath(folder),)).fetchone()
+       return BackupObject(db_backup)
   @staticmethod
   def find_backup( id, by_name=False ):
     if by_name:

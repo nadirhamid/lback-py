@@ -38,9 +38,9 @@ class installsetup(install):
             (cwd+"/db.sql", "%s/db.sql"%(lback_path))
         ]
       for i in links:
-	 if os.path.islink(i[1]):
+	 if os.path.exists(i[1]):
 	      os.remove(i[1])
-         subprocess.Popen(['ln', '-s', i[0], i[1]])
+	 shutil.copy( i[0], i[1] )
       install.run(self)
 
 def get_version():

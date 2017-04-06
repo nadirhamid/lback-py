@@ -1,11 +1,11 @@
 
-from .operation import OperationNoArgs
-from .utils import lback_output, lback_error, lback_id, lback_backup_dir, lback_backup_ext
+from .operation import OperationNoGlobs
+from .utils import lback_output, lback_error, lback_id, lback_backup_dir, lback_backup_ext, lback_backup_path
 from .backup import BackupObject
 import shutil
 import os
 
-class OperationMv(OperationNoArgs):
+class OperationMv(OperationNoGlobs):
     def _run( self, short_or_long_id ):   
       try:
         db = self.db
@@ -15,9 +15,9 @@ class OperationMv(OperationNoArgs):
         backup_dir = lback_backup_dir()
         folder = os.path.abspath( args.dst )
         dirname = os.path.dirname( folder )
-        archive = backup_dir + backup.lback_id + ext
-        update_cursor = db.cursor().execute("UPDATE backups SET folder = ?, dirname = ? WHERE lback_id = ?",
-          (folder, dirname, backup.lback_id))
+        archive = lback_backup_path( backup.id )
+        update_cursor = db.cursor().execute("UPDATE backups SET folder = %s, dirname = %s WHERE lback_id = %s",
+          (folder, dirname, backup.id))
         db.commit()
         lback_output("Moved compartment successfully")
       except Exception,ex:

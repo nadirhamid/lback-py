@@ -1,0 +1,13 @@
+{
+	"master": {
+		"database": {
+			"host": "localhost",
+			"user": "root",
+			"pass": "101010",
+			"name": "lback"
+		}
+	},
+	"agents": {
+		"enabled": true
+	}
+}

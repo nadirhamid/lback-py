@@ -8,7 +8,8 @@ from google.protobuf.descriptor import FieldDescriptor, Descriptor
 from google.protobuf.reflection import GeneratedProtocolMessageType
 from . import log
 from termcolor import colored
-
+import uuid
+import MySQLdb
 import tempfile
 import errno
 import hashlib
@@ -18,68 +19,6 @@ import sys
 
 
 
-def  make_lback_protobuf_field(name, type, type1, idx=0, tag=0, default_value=""):
-   return FieldDescriptor(name, name,idx,tag, type, type1,default_value, name,None,None,None,False,None)
-def make_lback_protobuf_descriptor(name, fields=[], enum_fields=[], containing_fields=[], nestable_fields=[]):
-   return Descriptor(name, name, name, None, fields, nestable_fields, enum_fields, containing_fields)
-
-## ID, NAME, SIZE, VERSION, JIT, FOLDER, CONTENTS, CMD, VERSION, STATUS
-id_field = make_lback_protobuf_field("ID", FieldDescriptor.TYPE_STRING, FieldDescriptor.CPPTYPE_STRING,1,1)
-name_field = make_lback_protobuf_field("NAME", FieldDescriptor.TYPE_STRING, FieldDescriptor.CPPTYPE_STRING,2,2)
-size_field = make_lback_protobuf_field("SIZE",  FieldDescriptor.TYPE_STRING, FieldDescriptor.CPPTYPE_STRING,3,3)
-jit_field =  make_lback_protobuf_field("JIT", FieldDescriptor.TYPE_BOOL, FieldDescriptor.CPPTYPE_BOOL,4,4,False)
-folder_field = make_lback_protobuf_field("FOLDER", FieldDescriptor.TYPE_STRING, FieldDescriptor.CPPTYPE_STRING,5,5)
-contents_field = make_lback_protobuf_field("CONTENTS", FieldDescriptor.TYPE_STRING, FieldDescriptor.CPPTYPE_STRING,6,6)
-cmd_field = make_lback_protobuf_field("CMD", FieldDescriptor.TYPE_STRING,FieldDescriptor.CPPTYPE_STRING,7,7)
-status_field = make_lback_protobuf_field("STATUS",FieldDescriptor.TYPE_STRING,FieldDescriptor.CPPTYPE_STRING,9,9)
-
-lback_msg_descriptor = make_lback_protobuf_descriptor("LBack_Protobuf_Message", [
-    id_field,
-    name_field,
-    size_field,
-    jit_field,
-    folder_field,
-    contents_field,
-    cmd_field,
-    status_field
-])
-      
-
-class LBack_Protobuf_Message(Message):
-  __metaclass__ = GeneratedProtocolMessageType 
-  DESCRIPTOR  = lback_msg_descriptor
-
-def recvall(the_socket,timeout=''):
-    #setup to use non-blocking sockets
-    #if no data arrives it assumes transaction is done
-    #recv() returns a string
-    the_socket.setblocking(0)
-    total_data=[];data=''
-    begin=time.time()
-
-    if not timeout:
-        timeout=1
-    while 1:
-        #if you got some data, then break after wait sec
-        if total_data and time.time()-begin>timeout:
-            break
-        #if you got no data at all, wait a little longer
-        elif time.time()-begin>timeout*2:
-            break
-        wait=0
-        try:
-            data=the_socket.recv(4096)
-            if data:
-                total_data.append(data)
-                begin=time.time()
-                data='';wait=0
-            else:
-                time.sleep(0.1)
-        except:
-            pass
-        #When a recv returns 0 bytes, other side has closed
-    result=''.join(total_data)
-    return result
 def lback_output(*args,**kwargs):
   type = kwargs['type'] if "type" in kwargs.keys() else "INFO"
   tag = kwargs['tag'] if "tag" in  kwargs.keys() else True
@@ -114,35 +53,79 @@ def lback_backup_dir():
 
 def lback_backup_ext():
     return ".tar.gz"
+
+def lback_settings():
+   file = open("%s/settings.json"%(lback_dir()), "r+")
+   import json
+   return json.loads( file.read() ) 
+
+def lback_backup_path( id ):
+   return "{}/{}.{}".format(lback_backup_dir(), id, lback_backup_ext)
+
+def lback_backup( id ):
+   db = lback_db()
+   select_cursor = db.cursor().execute("SELECT * FROM backups WHERE lback_id = ? LIMIT 1", ( id, ))
+   return select_cursor.fetchone()
+
+def lback_backup_chunked_file( id, chunk_size= 1024 ):
+   backup = lback_backup( id )
+   file_handler = open( lback_backup_path( id ), "r+" )
+   while True:
+	content = file_handler.read( chunk_size )
+	yield content
+
+
+def lback_agnets():
+   select_cursor = db.cursor().execute("SELECT * FROM agents")
+   agents= select_cursor.fetchall()
+   return agents
+
+def lback_backup_remove( id ):
+   os.remove( lback_backup_path( id ) )
+
 def lback_id(salt=""):
-    return hashlib.sha1(salt).hexdigest()
+    return hashlib.sha1("{}_{}".format(salt, uuid.uuid4())).hexdigest()
 
 def lback_untitled():
    return "Untitled"
 
 def lback_db( ):
   from os import getenv
-  from .backup import BackupObject
-  import sqlite3
+  config = lback_settings()
+  db = config['master']['database']
 
 
-  def backup_row_factory(cursor, row):
-    obj =BackupObject()
-    for idx, col in enumerate(cursor.description):
-	     setattr(obj, col[0], row[idx] )
+  connection = MySQLdb.connect(db['host'], db['user'], db['pass'], db['name'])
+  def check_table_exists(tablename):
+    dbcur = connection.cursor()
+    dbcur.execute("""
+        SELECT COUNT(*)
+        FROM information_schema.tables
+        WHERE table_name = '{0}'
+        """.format(tablename.replace('\'', '\'\'')))
+    if dbcur.fetchone()[0] == 1:
+        dbcur.close()
+        return True
 
-    return obj
-  connection = sqlite3.connect("%s/db.sql"%(lback_dir()))
-  connection.row_factory=backup_row_factory
+    dbcur.close()
+    return False 
+
   cursor = connection.cursor() 
-  cursor.execute(r"""
+  if not check_table_exists("backups"):
+     cursor.execute(r"""
      CREATE TABLE IF NOT EXISTS backups (
-	 lback_id VARCHAR(255),
+	 id VARCHAR(255),
 	 name VARCHAR(50),
 	 time DOUBLE,
 	 folder VARCHAR(255),
 	 dirname VARCHAR(255),
 	 size VARCHAR(255)
+    ); """)
+     cursor.execute(r"""
+     CREATE TABLE IF NOT EXISTS agents (
+	 id VARCHAR(255),
+	 host VARCHAR(50),
+	 port VARCHAR(5)
     ); """)
   connection.commit() 
   return connection

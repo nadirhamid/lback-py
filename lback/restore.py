@@ -1,9 +1,9 @@
 
-from lback.utils import untar, lback_backup_dir, lback_backup_ext
+from .utils import untar, lback_backup_dir, lback_backup_ext, lback_backup_path
 
 class Restore(object):
   def __init__(self, backup_id, folder='./'):
-    self.archive = lback_backup_dir()+ backup_id+lback_backup_ext()
+    self.archive = lback_backup_path( backup_id )
     self.backup_id = backup_id
     self.folder = folder
   def run(self, local=False):

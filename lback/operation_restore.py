@@ -11,13 +11,15 @@ class OperationRestore(Operation):
       try:
         db = self.db
         args = self.args
-        row = BackupObject.find_backup( short_or_long_id, by_name=args.name )
+        backup = BackupObject.find_backup( short_or_long_id, by_name=args.name )
         if args.clean \
-        and os.path.isdir(row.folder):
+        and os.path.isdir(backup.folder):
           lback_output("Cleaning directory..")
-          shutil.rmtree(row.folder)
+          shutil.rmtree(backup.folder)
+	self.client._run(self, backup )
         lback_output("Backup Found. Now restoring compartment")
-        rst = Restore(row.lback_id,folder=row.folder)
+
+        rst = Restore(backup.id,folder=backup.folder)
         rst.run(local=True)
         lback_output("Restore has been successfully performed")
       except RestoreException, ex:
