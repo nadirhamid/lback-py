@@ -1,0 +1,3 @@
+[submodule "lback_grpc"]
+	path = lback_grpc
+	url = https://github.com/nadirhamid/lback-py-grpc

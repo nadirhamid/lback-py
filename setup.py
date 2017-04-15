@@ -60,7 +60,7 @@ setup(name="LinuxOpenSuseBackupTool",
       download_url = "https://pypi.python.org/pypi/",
       license="MIT",
       long_description="",
-      packages=["lback"],
+      packages=["lback", "lback_grpc/lback_grpc"],
       classifiers=[
           'Development Status :: 5 - Production/Stable',
           'License :: OSI Approved :: BSD License',

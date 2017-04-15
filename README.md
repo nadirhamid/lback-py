@@ -73,65 +73,31 @@ Moving a backup
 lback mv ./folder ./new_folder
 ```
 
-REMOTE backups:
+REMOTE agents
+------------------------------------------------------
 
-To start a server. You may use:
-
-```
-lback --server
-```
-
-OR equivalently:
+To start an agent. Please use
 
 ```
-lback-server
+lback-agent --host {host} --port {port}
 ```
 
-
-this will start the program in server mode and listen to any
-connections
-
-IMPORTANT: For the client, a running server 'must' be set up for remote backups.
-You can set this in "settings.json". "server_ip" and "server_port"
-the client will attempt to communicate on this tcip channel.
-The commands for a restore and backup are analagous to local. For example:
+Register this agent
 
 ```
-lback --remote --backup --folder "/folder/"
+lback agent-add {host} {port}
 ```
 
-```
-lback --remote --restore --id "cb73eb0"
-```
-
-
-
-When done successfully, 
-database transactions kept should be similar on both the client and server.
-
-More on servers:
--------------------------------------------------
-
-This program makes no optimizations for server vs client. And both
-machines can run as either. The implementor must decide which to
-use as a server, client. Moreover settings.json 'should' be identical
-on both machines.
-
-Whenever a client successfully transfers data to the server. The data 'will'
-not be available immediately. Full propagation can take time depending
-on the folder's size.
-
-Benchmark results:
-
-108 megabytes (transfering XUL SDK)
-took ~ 3 minutes to archive and delivery
-another 3 minutes
-
-
-Generating a list of backups:
-
-To fetch all backups to date, you can use:
+Verify the agent is registered and alive
 
 ```
-lback --list
+lback agent-ls
 ```
+
+NOTE: When you register agents your backups will be stored across
+all agents. And by default your CLI lback will use all agents
+for backup/restore lookup, moving, etc.
+
+More coming soon..
+
+
