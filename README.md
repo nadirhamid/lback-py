@@ -35,6 +35,12 @@ backup/restores. Please start the Lback server with
 ```
 lback-server
 ```
+
+You will also need to start the local agent.
+
+```
+lback-agent
+```
     
 Regular Backups (Local)
 -------------------------------------------------------
