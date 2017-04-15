@@ -18,9 +18,12 @@ Installing
 ------------------------------------------------------
 
 ```
+git clone https://github.com/nadirhamid/lback-py
+cd lback-py
+git submodule update --init
 pip install -r requirements.txt
 python setup.py build
-python setup.py install --user
+python setup.py install
 ```
     
 Regular Backups (Local)
