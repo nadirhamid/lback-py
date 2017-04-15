@@ -106,41 +106,7 @@ def lback_db( ):
   from os import getenv
   config = lback_settings()
   db = config['master']['database']
-
-
   connection = MySQLdb.connect(db['host'], db['user'], db['pass'], db['name'])
-  def check_table_exists(tablename):
-    dbcur = connection.cursor()
-    dbcur.execute("""
-        SELECT COUNT(*)
-        FROM information_schema.tables
-        WHERE table_name = '{0}'
-        """.format(tablename.replace('\'', '\'\'')))
-    if dbcur.fetchone()[0] == 1:
-        dbcur.close()
-        return True
-
-    dbcur.close()
-    return False 
-
-  cursor = connection.cursor() 
-  if not check_table_exists("backups"):
-     cursor.execute(r"""
-     CREATE TABLE IF NOT EXISTS backups (
-	 id VARCHAR(255),
-	 name VARCHAR(50),
-	 time DOUBLE,
-	 folder VARCHAR(255),
-	 dirname VARCHAR(255),
-	 size VARCHAR(255)
-    ); """)
-     cursor.execute(r"""
-     CREATE TABLE IF NOT EXISTS agents (
-	 id VARCHAR(255),
-	 host VARCHAR(50),
-	 port VARCHAR(5)
-    ); """)
-  connection.commit() 
   return connection
 def untar(source_filename, dest_dir):
     try:

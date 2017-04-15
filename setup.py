@@ -3,6 +3,9 @@ import sys
 import shutil
 import json
 import subprocess
+import hashlib
+import uuid
+import MySQLdb
 
 
 
@@ -13,6 +16,39 @@ except ImportError:
 
 from distutils.command.build_py import build_py
 from distutils.command.install import install
+
+
+def lback_id(salt=""):
+    return hashlib.sha1("{}_{}".format(salt, uuid.uuid4())).hexdigest()
+
+
+
+def create_db():
+  with open(os.path.join(os.getcwd(), "settings.json"), "r+") as settings_file:
+       config = json.loads( settings_file.read() )
+  db = config['master']['database']
+  connection = MySQLdb.connect(db['host'], db['user'], db['pass'], db['name'])
+  cursor = connection.cursor()
+  cursor.execute(r"""DROP TABLE backups""")
+  cursor.execute(r"""DROP TABLE agents""")
+  cursor.execute(r"""
+     CREATE TABLE IF NOT EXISTS backups (
+	 id VARCHAR(255),
+	 name VARCHAR(50),
+	 time DOUBLE,
+	 folder VARCHAR(255),
+	 dirname VARCHAR(255),
+	 size VARCHAR(255)
+    ); """)
+  cursor.execute(r"""
+     CREATE TABLE IF NOT EXISTS agents (
+	 id VARCHAR(255),
+	 host VARCHAR(50),
+	 port VARCHAR(5)
+    ); """)
+  ## add local agent by default
+  cursor.execute(r"""INSERT INTO agents(id, host, port) VALUES (%s, %s, %s)""", (lback_id(), "127.0.0.1", "5750",))
+  connection.commit()
 
 class installsetup(install):
     def run(self):
@@ -38,9 +74,10 @@ class installsetup(install):
             (cwd+"/db.sql", "%s/db.sql"%(lback_path))
         ]
       for i in links:
-	 if os.path.exists(i[1]):
+	  if os.path.exists(i[1]):
 	      os.remove(i[1])
-	 shutil.copy( i[0], i[1] )
+	  shutil.copy( i[0], i[1] )
+      create_db()
       install.run(self)
 
 def get_version():
