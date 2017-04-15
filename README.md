@@ -25,6 +25,16 @@ pip install -r requirements.txt
 python setup.py build
 python setup.py install
 ```
+
+LBACK server
+------------------------------------------------------
+
+Running the lback server is required for local and non-local
+backup/restores. Please start the Lback server with
+
+```
+lback-server
+```
     
 Regular Backups (Local)
 -------------------------------------------------------
