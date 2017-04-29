@@ -29,10 +29,10 @@ def create_db():
   db = config['master']['database']
   connection = MySQLdb.connect(db['host'], db['user'], db['pass'], db['name'])
   cursor = connection.cursor()
-  cursor.execute(r"""DROP TABLE backups""")
-  cursor.execute(r"""DROP TABLE agents""")
+  cursor.execute(r"""DROP TABLE IF EXISTS backups""")
+  cursor.execute(r"""DROP TABLE IF EXISTS agents""")
   cursor.execute(r"""
-     CREATE TABLE IF NOT EXISTS backups (
+     CREATE TABLE backups (
 	 id VARCHAR(255),
 	 name VARCHAR(50),
 	 time DOUBLE,
@@ -41,7 +41,7 @@ def create_db():
 	 size VARCHAR(255)
     ); """)
   cursor.execute(r"""
-     CREATE TABLE IF NOT EXISTS agents (
+     CREATE TABLE agents (
 	 id VARCHAR(255),
 	 host VARCHAR(50),
 	 port VARCHAR(5)

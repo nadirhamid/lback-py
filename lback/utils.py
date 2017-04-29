@@ -72,7 +72,7 @@ def lback_backup( id ):
    return BackupObject(db_backup)
 
 def lback_backup_chunked_file( id, chunk_size= 1024 ):
-   file_handler = open( lback_backup_path( id ), "r+" )
+   file_handler = open( lback_backup_path( id ), "rb" )
    content = file_handler.read( chunk_size )
    while content:
 	yield content

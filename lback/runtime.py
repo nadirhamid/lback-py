@@ -46,7 +46,7 @@ class Runtime(object):
     rm_parser = sub_parser.add_parser("rm", help="Delete existing backup")
     rm_parser.add_argument("id", help="Select the ID", nargs="*")
     rm_parser.add_argument("--name", help="Filter to a specific name", default=False)
-    rm_parser.add_argument("--all", help="Remove all copies", default=False, action="store_true")
+    rm_parser.add_argument("--all", help="Remove all copies", default=True, action="store_true")
     rm_parser.add_argument("--target", help="Remove from a specific agent", default=False)
     rm_parser.set_defaults(rm=True)
 
