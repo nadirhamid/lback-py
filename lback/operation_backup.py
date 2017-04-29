@@ -41,8 +41,8 @@ class OperationBackup(Operation):
         if args.remove:
           shutil.rmtree(folder)
           lback_output("Directory successfully deleted..")
-	backup_obj = lback_backup( id )
-  	self.client._run( self, backup_obj )
+        backup_obj = lback_backup( id )
+        self.client._run( self, backup_obj )
       except BackupException, ex:
         lback_error(ex)	
       except Exception, ex:

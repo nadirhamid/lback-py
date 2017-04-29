@@ -3,11 +3,11 @@
 import tarfile 
 import os
 from .db import DBObject
-from .utils import lback_backup_dir,lback_backup_ext,lback_output,lback_backup_path, is_writable, lback_db,  lback_backup_path
+from .utils import lback_backup_dir,lback_backup_ext,lback_output,lback_backup_path, is_writable, lback_db,  lback_backup_path, lback_id_temp
 from .archive import Archive
 
 class Backup(object):
-  def __init__(self, backup_id, folder):
+  def __init__(self, backup_id, folder, temp=False):
     backup_dir = lback_backup_dir()
     self.things = []
     self.backup_id = backup_id

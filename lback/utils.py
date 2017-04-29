@@ -95,6 +95,9 @@ def lback_backup_remove( id ):
 
 def lback_id(salt=""):
     return hashlib.sha1("{}_{}".format(salt, uuid.uuid4())).hexdigest()
+def lback_id_temp(existing_id):
+    return "{}-TEMP".format(existing_id)
+
 def lback_validate_id(id):
    if not len( id ) > 6:
 	raise Exception("ID should be more than 6 characters")
