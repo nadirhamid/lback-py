@@ -32,6 +32,7 @@ class Runtime(object):
     backup_parser = sub_parser.add_parser("backup", help="Backup files and folders") 
     backup_parser.add_argument("folder", help="Select a folder", nargs="*")
     backup_parser.add_argument("--name", help="Name for backup", default=untitled)
+    backup_parser.add_argument("--diff", help="Runs a differential backup")
     backup_parser.add_argument("--remove", action="store_true", help="Remove backup when done", default=False)
     backup_parser.add_argument("--local",default=True, action="store_true") 
     backup_parser.set_defaults(backup=True)
