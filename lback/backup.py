@@ -17,12 +17,21 @@ class Backup(object):
     self._folder( self.folder )
     self._pack()
   def write_chunked(self, gen):
+    def rollback():
+        os.remove( path )
+    def verify_chunk( chunk ):
+        if not chunk:
+           raise BackupException("Unable to write backup. Stream failed")
+
     path = lback_backup_path(self.backup_id ) 
-    with open( path, "w+" ) as backup_archive_file:
-        for chunk in gen:
-           lback_output("BACKUP WRITING CHUNK")
-           lback_output( chunk )
-           backup_archive_file.write( chunk )
+    try:
+        with open( path, "w+" ) as backup_archive_file:
+            for chunk in gen:
+               verify_chunk( chunk )
+               backup_archive_file.write( chunk )
+     except Exception,ex:
+        rollback()
+        raise ex
   def _pack(self):
     lback_output( "Files have been gathered. Forming archive.." )
     for i in self.things:

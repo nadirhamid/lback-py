@@ -11,12 +11,22 @@ class Restore(object):
     untar(self.archive, self.folder)
   def read_chunked(self):
     for chunk in lback_backup_chunked_file(self.backup_id):
-	yield chunk
+	    yield chunk
   def run_chunked(self, iterator):
-      with open( self.archive, "a+" ) as restore_backup_file:
-	 for chunk in iterator:
-	     restore_backup_file.write( chunk )
-      self.run()
+     def rollback():
+         os.remove( self.archive )
+     def verify_chunk(chunk):
+        if not chunk:
+           raise RestoreException("Unable to restore. Receiving from stream failed")
+     try:
+         with open( self.archive, "a+" ) as restore_backup_file:
+             for chunk in iterator:
+                 verify_chunk( chunk )
+                 restore_backup_file.write( chunk )
+             self.run()
+     except Exception,ex:
+         rollback()
+         raise ex
 
 class RestoreException(Exception):
      pass
