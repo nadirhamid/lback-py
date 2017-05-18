@@ -21,15 +21,21 @@ class Backup(object):
     self.diff_backup = diff_backup 
     self.run()
   def write_chunked(self, gen):
-    path = lback_backup_path(self.backup_id ) 
-    with open( path, "w+" ) as backup_archive_file:
-        for chunk in gen:
-           lback_output("BACKUP WRITING CHUNK")
-           backup_archive_file.write( chunk )
+    def rollback():
+        os.remove( path )
+    def verify_chunk( chunk ):
+        if not chunk:
+           raise BackupException("Unable to write backup. Stream failed")
 
-  def _add_to_archive_list(self,path):
-     self.archive_list.append(path)
-     lback_output("ADDED " + path + " TO ARCHIVE")
+    path = lback_backup_path(self.backup_id ) 
+    try:
+        with open( path, "w+" ) as backup_archive_file:
+            for chunk in gen:
+               verify_chunk( chunk )
+               backup_archive_file.write( chunk )
+    except Exception,ex:
+        rollback()
+        raise ex
   def _pack(self):
     lback_output( "Files have been gathered. Forming archive.." )
     for archive_file in self.archive_list:
