@@ -55,6 +55,10 @@ def lback_backup_dir():
 def lback_backup_ext():
     return ".tar.gz"
 
+def lback_temp_dir():
+    return lback_dir()+"/temp/"
+
+
 def lback_settings():
    file = open("%s/settings.json"%(lback_dir()), "r+")
    import json
@@ -62,6 +66,9 @@ def lback_settings():
 
 def lback_backup_path( id ):
    return "{}/{}{}".format(lback_backup_dir(), id, lback_backup_ext())
+
+def lback_temp_path( ):
+   return "{}/{}".format( lback_temp_dir(), str(uuid.uuid4()) )
 
 def lback_backup( id ):
    from .backup import BackupObject
@@ -71,12 +78,15 @@ def lback_backup( id ):
    db_backup = select_cursor.fetchone()
    return BackupObject(db_backup)
 
-def lback_backup_chunked_file( id, chunk_size= 1024 ):
-   file_handler = open( lback_backup_path( id ), "rb" )
-   content = file_handler.read( chunk_size )
-   while content:
-	yield content
-	content = file_handler.read( chunk_size )
+def lback_backup_chunked_file( id, chunk_size= 1048576 ):
+   with open( lback_backup_path( id ), "rb" ) as file_handler:
+       content = file_handler.read( chunk_size )
+       while content!="":
+         lback_output("CHUNK CONTENT")
+         lback_output(content)
+         packed_content = content
+         content = file_handler.read( chunk_size )
+         yield packed_content
 
 def lback_agents():
    from .agent import AgentObject
@@ -89,6 +99,19 @@ def lback_agents():
 	agents.append( AgentObject( db_agent ) )
 	db_agent = select_cursor.fetchone()
    return agents
+
+def lback_backups():
+   from .backup import BackupObject
+   db = lback_db()
+   select_cursor = db.cursor()
+   select_cursor.execute("SELECT * FROM backups")
+   db_backup = select_cursor.fetchone()
+   backups = []
+   while db_agent:
+	backups.append( BackupObject( db_backup ) )
+	db_backups = select_cursor.fetchone()
+   return backups
+
 
 def lback_backup_remove( id ):
    os.remove( lback_backup_path( id ) )
@@ -104,6 +127,7 @@ def lback_validate_id(id):
 
 def lback_untitled():
    return "Untitled"
+
 
 def lback_db( ):
   from os import getenv

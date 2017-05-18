@@ -42,6 +42,7 @@ class Runtime(object):
     restore_parser.add_argument("id", help="Select the ID", nargs="*")
     restore_parser.add_argument("--name", help="Filter to a specific name", default=False)
     restore_parser.add_argument("--clean", action="store_true", help="Clean backup on completion", default=False)
+    restore_parser.add_argument("--folder", help="Restore to specific path", default=False)
     restore_parser.set_defaults(restore=True)
 
     rm_parser = sub_parser.add_parser("rm", help="Delete existing backup")

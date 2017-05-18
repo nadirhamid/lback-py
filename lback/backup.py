@@ -7,44 +7,69 @@ from .utils import lback_backup_dir,lback_backup_ext,lback_output,lback_backup_p
 from .archive import Archive
 
 class Backup(object):
-  def __init__(self, backup_id, folder, temp=False):
+  def __init__(self, backup_id, folder, temp=False, diff=False):
     backup_dir = lback_backup_dir()
-    self.things = []
+    self.archive_list = []
     self.backup_id = backup_id
-    self.archive = Archive(lback_backup_path(backup_id), "w")
     self.folder = folder
+    self.diff = diff
   def run(self):
-    self._folder( self.folder )
+    self.archive = Archive(lback_backup_path(self.backup_id), "w")
+    self._folder( "" )
     self._pack()
+  def run_diff(self, diff_backup):
+    self.diff_backup = diff_backup 
+    self.run()
   def write_chunked(self, gen):
     path = lback_backup_path(self.backup_id ) 
     with open( path, "w+" ) as backup_archive_file:
         for chunk in gen:
            lback_output("BACKUP WRITING CHUNK")
-           lback_output( chunk )
            backup_archive_file.write( chunk )
+
+  def _add_to_archive_list(self,path):
+     self.archive_list.append(path)
+     lback_output("ADDED " + path + " TO ARCHIVE")
   def _pack(self):
     lback_output( "Files have been gathered. Forming archive.." )
-    for i in self.things:
-      as_file = os.path.relpath(i, self.folder)
-      if not is_writable( i ):
-	  lback_output("Permissions not set for %s"%( i ), type="ERROR" )
+    for archive_file in self.archive_list:
+      full_path = os.path.join( self.folder, archive_file )
+      if not is_writable( full_path ):
+	      lback_output("Permissions not set for %s"%( full_path ), type="ERROR" )
       else:
-          self.archive.obj.add(i, arcname=as_file ) 
+          self.archive.obj.add(full_path, arcname=archive_file ) 
     self.archive.obj.close()
-  def _folder(self, pathname, prefix=''):
-    l = os.listdir(prefix + pathname)
-    lback_output("Added \"" + prefix + pathname + "\"")
-    folders = [self._folder(i, prefix + pathname + "/") for i in l if os.path.isdir(prefix + pathname + "/" + i)]
-    files = [self._file(i, prefix + pathname + "/") for i in l if os.path.isfile(prefix + pathname + "/" + i)]
-    self.things.append(prefix + pathname)
-
-    return prefix + pathname
-  def _file(self, pathname, prefix=''):
-    lback_output("Added \"" + prefix + pathname + "\"")
-    self.things.append(prefix + pathname)
-
-    return prefix + pathname
+  def _can_add(self, file_path):
+       if not self.diff:
+           return True
+       diff_file = os.path.join( self.diff_backup, file_path)
+       lback_output("DIFF CHECKING FILE {}".format(diff_file))
+       ## new file added
+       if not os.path.exists(diff_file):
+           lback_output("DIFF NEW FILE FOUND {}".format(file_path))
+           return True
+       diff_file_st = os.stat(diff_file)
+       backup_file = os.path.join( self.folder, file_path )
+       backup_file_st = os.stat(backup_file)
+       ## file modified since last backup
+       if int(diff_file_st.st_mtime) != int(backup_file_st.st_mtime):
+           lback_output("DIFF FILE MODIFIED {}".format(file_path))
+           return True
+       ## no changes
+       return False
+  def _folder(self, folder_path):
+    folder_list = os.listdir(os.path.join(self.folder, folder_path))
+    ##self._add_to_archive_list(folder_path)
+    for file_or_folder in folder_list:
+        target_path = os.path.join(folder_path, file_or_folder)
+        real_path = os.path.join(self.folder, target_path)
+        if os.path.isdir( real_path ):
+            self._folder( target_path )
+        elif os.path.isfile( real_path ):
+            self._file( target_path )
+  def _file(self, file_path):
+    if self._can_add( file_path ):
+        self._add_to_archive_list(file_path)
 
 class BackupException(Exception):
     pass
@@ -66,7 +91,14 @@ class BackupObject(DBObject):
   def find_by_name( name ):
        db = lback_db()
        select_cursor =db.cursor()
-       select_cursor.execute("SELECT * FROM backups WHERE name = %s", (args.name,))
+       select_cursor.execute("SELECT * FROM backups WHERE name = %s", (name,))
+       db_backup = select_cursor.fetchone()
+       return BackupObject(db_backup)
+  @staticmethod
+  def find_by_id( partial_or_full_id ):
+       db = lback_db()
+       select_cursor =db.cursor()
+       select_cursor.execute("SELECT * FROM backups WHERE ID LIKE %s", (partial_or_full_id,))
        db_backup = select_cursor.fetchone()
        return BackupObject(db_backup)
   @staticmethod
