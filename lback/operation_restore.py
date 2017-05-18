@@ -17,11 +17,8 @@ class OperationRestore(Operation):
         and os.path.isdir(backup.folder):
           lback_output("Cleaning directory..")
           shutil.rmtree(backup.folder)
-	self.client._run(self, backup )
         lback_output("Backup Found. Now restoring compartment")
-
-        rst = Restore(backup.id,folder=backup.folder)
-        rst.run(local=True)
+        self.client._run(self, backup )
         lback_output("Restore has been successfully performed")
       except RestoreException, ex:
         lback_error(ex)	

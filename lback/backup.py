@@ -29,7 +29,7 @@ class Backup(object):
             for chunk in gen:
                verify_chunk( chunk )
                backup_archive_file.write( chunk )
-     except Exception,ex:
+    except Exception,ex:
         rollback()
         raise ex
   def _pack(self):

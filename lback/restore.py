@@ -9,9 +9,6 @@ class Restore(object):
   def run(self, local=False):
     backup_dir = lback_backup_dir()
     untar(self.archive, self.folder)
-  def read_chunked(self):
-    for chunk in lback_backup_chunked_file(self.backup_id):
-	    yield chunk
   def run_chunked(self, iterator):
      def rollback():
          os.remove( self.archive )
