@@ -30,12 +30,12 @@ class OperationBackup(Operation):
         folder = os.path.abspath( rel_folder )
         id =lback_id(folder)
         dirname = os.path.dirname( folder )
-        bkp = Backup(id, folder, diff=args.diff)
+        bkp = Backup(id, folder, diff=args.diff, encryption_key=args.encryption_key)
 
         def complete_backup():
             size = get_folder_size(folder)
-            insert_cursor = db.cursor().execute("INSERT INTO backups (id, time, folder, dirname, size, name) VALUES (%s, %s, %s, %s, %s, %s)", 
-              (id, time.time(), folder, dirname, size, args.name,))
+            insert_cursor = db.cursor().execute("INSERT INTO backups (id, time, folder, dirname, size, name, encryption_key) VALUES (%s, %s, %s, %s, %s, %s, %s)", 
+              (id, time.time(), folder, dirname, size, args.name, args.encryption_key,))
             db.commit()
 
             lback_output("Backup OK. Now saving to disk")

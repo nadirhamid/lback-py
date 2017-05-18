@@ -35,6 +35,7 @@ class Runtime(object):
     backup_parser.add_argument("--diff", help="Runs a differential backup")
     backup_parser.add_argument("--remove", action="store_true", help="Remove backup when done", default=False)
     backup_parser.add_argument("--local",default=True, action="store_true") 
+    backup_parser.add_argument("--encryption-key", help="Set an encryption key for the backup")
     backup_parser.set_defaults(backup=True)
 
 

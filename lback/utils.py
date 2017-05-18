@@ -3,9 +3,6 @@ import time,socket
 import os
 import  zipfile
 import json
-from google.protobuf.message import Message
-from google.protobuf.descriptor import FieldDescriptor, Descriptor
-from google.protobuf.reflection import GeneratedProtocolMessageType
 from . import log
 from termcolor import colored
 import uuid
@@ -16,6 +13,10 @@ import hashlib
 import time
 import tarfile
 import sys
+import base64
+from hashlib import md5
+from Crypto.Cipher import AES
+from Crypto import Random
 
 
 
@@ -58,6 +59,14 @@ def lback_backup_ext():
 def lback_temp_dir():
     return lback_dir()+"/temp/"
 
+def lback_temp_path():
+   return "{}/".format(lback_temp_dir(), str(uuid.uuid4()))
+def lback_temp_file():
+    tfile = tempfile.NamedTemporaryFile()
+    tfile.write("")
+    tfile.seek(0)
+    tfile.close()
+    return open(tfile.name,"wb")
 
 def lback_settings():
    file = open("%s/settings.json"%(lback_dir()), "r+")
@@ -67,8 +76,6 @@ def lback_settings():
 def lback_backup_path( id ):
    return "{}/{}{}".format(lback_backup_dir(), id, lback_backup_ext())
 
-def lback_temp_path( ):
-   return "{}/{}".format( lback_temp_dir(), str(uuid.uuid4()) )
 
 def lback_backup( id ):
    from .backup import BackupObject
@@ -119,7 +126,7 @@ def lback_backup_remove( id ):
 def lback_id(salt=""):
     return hashlib.sha1("{}_{}".format(salt, uuid.uuid4())).hexdigest()
 def lback_id_temp(existing_id):
-    return "{}-TEMP".format(existing_id)
+    return "{}-TEMP-{}".format(existing_id, str(uuid.uuid4()))
 
 def lback_validate_id(id):
    if not len( id ) > 6:
@@ -127,6 +134,43 @@ def lback_validate_id(id):
 
 def lback_untitled():
    return "Untitled"
+
+def derive_key_and_iv(password, salt, key_length, iv_length):
+    d = d_i = ''
+    while len(d) < key_length + iv_length:
+        d_i = md5(d_i + password + salt).digest()
+        d += d_i
+    return d[:key_length], d[key_length:key_length+iv_length]
+
+def lback_encrypt(in_file, out_file, password, key_length=32):
+    bs = AES.block_size
+    salt = Random.new().read(bs - len('Salted__'))
+    key, iv = derive_key_and_iv(password, salt, key_length, bs)
+    cipher = AES.new(key, AES.MODE_CBC, iv)
+    out_file.write('Salted__' + salt)
+    finished = False
+    while not finished:
+        chunk = in_file.read(1024 * bs)
+        if len(chunk) == 0 or len(chunk) % bs != 0:
+            padding_length = (bs - len(chunk) % bs) or bs
+            chunk += padding_length * chr(padding_length)
+            finished = True
+        out_file.write(cipher.encrypt(chunk))
+
+def lback_decrypt(in_file, out_file, password, key_length=32):
+    bs = AES.block_size
+    salt = in_file.read(bs)[len('Salted__'):]
+    key, iv = derive_key_and_iv(password, salt, key_length, bs)
+    cipher = AES.new(key, AES.MODE_CBC, iv)
+    next_chunk = ''
+    finished = False
+    while not finished:
+        chunk, next_chunk = next_chunk, cipher.decrypt(in_file.read(1024 * bs))
+        if len(next_chunk) == 0:
+            padding_length = ord(chunk[-1])
+            chunk = chunk[:-padding_length]
+            finished = True
+        out_file.write(chunk)
 
 
 def lback_db( ):

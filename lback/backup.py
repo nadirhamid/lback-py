@@ -2,19 +2,23 @@
 
 import tarfile 
 import os
+import shutil
+import tempfile
 from .db import DBObject
-from .utils import lback_backup_dir,lback_backup_ext,lback_output,lback_backup_path, is_writable, lback_db,  lback_backup_path, lback_id_temp
+from .utils import lback_backup_dir,lback_backup_ext,lback_output,lback_backup_path, is_writable, lback_db, lback_backup_chunked_file, lback_backup_path, lback_id_temp, lback_encrypt, lback_temp_file
 from .archive import Archive
 
 class Backup(object):
-  def __init__(self, backup_id, folder, temp=False, diff=False):
+  def __init__(self, backup_id, folder, temp=False, diff=False, encryption_key=False):
     backup_dir = lback_backup_dir()
     self.archive_list = []
     self.backup_id = backup_id
+    self.backup_path = lback_backup_path(self.backup_id)
+    self.encryption_key=encryption_key
     self.folder = folder
     self.diff = diff
   def run(self):
-    self.archive = Archive(lback_backup_path(self.backup_id), "w")
+    self.archive = Archive(self.backup_path, "w")
     self._folder( "" )
     self._pack()
   def run_diff(self, diff_backup):
@@ -36,6 +40,10 @@ class Backup(object):
     except Exception,ex:
         rollback()
         raise ex
+  def _add_to_archive_list(self,path):
+     lback_output("ADDING FILE {} TO ARCHIVE".format(path))
+     self.archive_list.append(path)
+
   def _pack(self):
     lback_output( "Files have been gathered. Forming archive.." )
     for archive_file in self.archive_list:
@@ -45,6 +53,12 @@ class Backup(object):
       else:
           self.archive.obj.add(full_path, arcname=archive_file ) 
     self.archive.obj.close()
+    if self.encryption_key:
+        lback_output( "Encrypting backup.. This may take a moment." )
+        temp_file = lback_temp_file()
+        with open(self.backup_path, "rb") as in_file, temp_file as out_file:
+           lback_encrypt(in_file, out_file, self.encryption_key)
+        shutil.move(temp_file.name, self.backup_path)
   def _can_add(self, file_path):
        if not self.diff:
            return True
@@ -88,7 +102,8 @@ class BackupObject(DBObject):
 	"time",
 	"folder",
 	"dirname",
-	"size" ]
+	"size",
+    "encryption_key" ]
   def get_filename( self ):
     splitted = self.folder.split("/")
     filename = splitted[ len( splitted ) - 1 ]

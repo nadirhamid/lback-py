@@ -5,17 +5,9 @@ import json
 import subprocess
 import hashlib
 import uuid
-import MySQLdb
-
-
-
-try:
-	from setuptools import setup
-except ImportError:
-	from distutils.core import setup
-
-from distutils.command.build_py import build_py
-from distutils.command.install import install
+from setuptools import setup
+from setuptools.command.build_py import build_py
+from setuptools.command.install import install
 
 
 def lback_id(salt=""):
@@ -24,6 +16,7 @@ def lback_id(salt=""):
 
 
 def create_db():
+  import MySQLdb
   with open(os.path.join(os.getcwd(), "settings.json"), "r+") as settings_file:
        config = json.loads( settings_file.read() )
   db = config['master']['database']
@@ -33,18 +26,19 @@ def create_db():
   cursor.execute(r"""DROP TABLE IF EXISTS agents""")
   cursor.execute(r"""
      CREATE TABLE backups (
-	 id VARCHAR(255),
-	 name VARCHAR(50),
-	 time DOUBLE,
-	 folder VARCHAR(255),
-	 dirname VARCHAR(255),
-	 size VARCHAR(255)
+     id VARCHAR(255),
+     name VARCHAR(50),
+     time DOUBLE,
+     folder VARCHAR(255),
+     dirname VARCHAR(255),
+     size VARCHAR(255),
+     encryption_key VARCHAR(255) DEFAULT NULL
     ); """)
   cursor.execute(r"""
      CREATE TABLE agents (
-	 id VARCHAR(255),
-	 host VARCHAR(50),
-	 port VARCHAR(5)
+     id VARCHAR(255),
+     host VARCHAR(50),
+     port VARCHAR(5)
     ); """)
   ## add local agent by default
   cursor.execute(r"""INSERT INTO agents(id, host, port) VALUES (%s, %s, %s)""", (lback_id(), "127.0.0.1", "5750",))
@@ -66,7 +60,7 @@ class installsetup(install):
       os.makedirs("%s/.lback"%(home_path))
       os.makedirs("%s/.lback/backups/"%(home_path))
       os.makedirs("%s/.lback/bin/"%(home_path))
-	
+    
       lback_path = "%s/.lback/"%(home_path)
       links = [
             (cwd+"/bin/lback", "%s/bin/lback"%(lback_path)),
@@ -74,9 +68,9 @@ class installsetup(install):
             (cwd+"/db.sql", "%s/db.sql"%(lback_path))
         ]
       for i in links:
-	  if os.path.exists(i[1]):
-	      os.remove(i[1])
-	  shutil.copy( i[0], i[1] )
+          if os.path.exists(i[1]):
+              os.remove(i[1])
+          shutil.copy( i[0], i[1] )
       create_db()
       install.run(self)
 
@@ -87,6 +81,15 @@ def get_version():
   except:
     return None
   return version
+deps = [
+    "mysqlclient==1.3.10",
+    "termcolor==1.1.0",
+    "pycrypto==2.6.1",
+    "enum34==1.1.6",
+    "six==1.10.0",
+    "protobuf==3.3.0"
+]
+
 
 setup(name="LinuxOpenSuseBackupTool",
       version="0.1.0",
@@ -115,6 +118,8 @@ setup(name="LinuxOpenSuseBackupTool",
           'Topic :: Internet :: WWW/HTTP :: WSGI :: Server',
           'Topic :: Software Development :: Libraries :: Python Modules'
       ],
+      setup_requires=deps,
+      install_requires=deps,
       cmdclass=dict(install=installsetup))
 
 
