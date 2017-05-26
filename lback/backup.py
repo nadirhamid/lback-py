@@ -110,6 +110,7 @@ class BackupObject(DBObject):
     return  filename
   @staticmethod
   def find_by_name( name ):
+       lback_output("FINDING BACKUP BY NAME %s"%(name))
        db = lback_db()
        select_cursor =db.cursor()
        select_cursor.execute("SELECT * FROM backups WHERE name = %s", (name,))
@@ -117,13 +118,15 @@ class BackupObject(DBObject):
        return BackupObject(db_backup)
   @staticmethod
   def find_by_id( partial_or_full_id ):
+       lback_output("FINDING BACKUP BY ID %s"%(partial_or_full_id))
        db = lback_db()
        select_cursor =db.cursor()
-       select_cursor.execute("SELECT * FROM backups WHERE ID LIKE %s", (partial_or_full_id,))
+       select_cursor.execute("SELECT * FROM backups WHERE ID LIKE %s", ('%' + partial_or_full_id + '%',))
        db_backup = select_cursor.fetchone()
        return BackupObject(db_backup)
   @staticmethod
   def find_by_folder( folder ):
+       lback_output("FINDING BACKUP BY FOLDER %s"%(folder))
        db = lback_db()
        select_cursor = db.cursor()
        select_cursor.execute("SELECT * FROM backups WHERE folder = %s", (os.path.abspath(folder),))

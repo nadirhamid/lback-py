@@ -17,7 +17,7 @@ class OperationLs(OperationNoGlobs):
         while db_backup:
 	  backup = BackupObject( db_backup )
           filename = backup.get_filename()
-          lback_print("%s\t%s"%(filename, backup.id), "white")
+          lback_print("%s\t%s"%(backup.id, filename), "white")
           db_backup = select_cursor.fetchone()
       except Exception, ex:
         lback_error(ex)	

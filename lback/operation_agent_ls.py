@@ -18,6 +18,7 @@ class OperationAgentLs(OperationNoGlobs):
           agent = AgentObject(db_agent)
           ## check status
           sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+          sock.settimeout(2)
           result = sock.connect_ex((agent.host, int(agent.port)))
           status = ""
           if result == 0:
