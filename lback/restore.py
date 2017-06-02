@@ -1,5 +1,6 @@
 import shutil
 import tempfile
+import os
 from .utils import untar, lback_backup_dir, lback_backup_ext, lback_backup_path, lback_backup_chunked_file, lback_decrypt, lback_id_temp, lback_backup, lback_temp_file
 
 class Restore(object):

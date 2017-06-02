@@ -104,7 +104,8 @@ class BackupObject(DBObject):
 	"dirname",
 	"size",
     "encryption_key",
-    "distribution_strategy" ]
+    "distribution_strategy",
+    "shards_total" ]
   def get_filename( self ):
     splitted = self.folder.split("/")
     filename = splitted[ len( splitted ) - 1 ]

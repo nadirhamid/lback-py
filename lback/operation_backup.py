@@ -32,7 +32,7 @@ class OperationBackup(Operation):
         db = self.db
         args = self.args
         folder = os.path.abspath( rel_folder )
-        id =lback_id(folder)
+        id =lback_id(salt=folder)
         dirname = os.path.dirname( folder )
         bkp = Backup(id, folder, diff=args.diff, encryption_key=args.encryption_key)
 

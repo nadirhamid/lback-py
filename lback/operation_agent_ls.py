@@ -1,6 +1,6 @@
 
 from .operation import OperationNoGlobs
-from .utils import lback_print, lback_output, lback_error, lback_id
+from .utils import lback_print, lback_output, lback_error, lback_id, lback_agent_is_available
 from .agent import AgentObject
 import socket
 import shutil
@@ -16,12 +16,8 @@ class OperationAgentLs(OperationNoGlobs):
         db_agent = select_cursor.fetchone()
         while db_agent:
           agent = AgentObject(db_agent)
-          ## check status
-          sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-          sock.settimeout(2)
-          result = sock.connect_ex((agent.host, int(agent.port)))
           status = ""
-          if result == 0:
+          if lback_agent_is_available( agent ):
             status = "OPEN"
           else:
             status = "NOT OPEN"

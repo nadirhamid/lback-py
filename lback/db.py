@@ -8,6 +8,11 @@ class DBObject(object):
 		field_name = self.FIELDS[ field_idx ]
 		setattr( self, field_name, obj[ field_idx ] )
 
+  def update_field(self, field_name, field_value):
+       db = lback_db()
+       cursor = db.cursor()
+       cursor.execute("UPDATE "  + self.TABLE + " SET " + field_name + " = %s  WHERE ID = %s", ( field_value, self.id, ) )
+       db.commit()
   @classmethod
   def find_by_id( cls, id ):
        lback_validate_id( id ) 

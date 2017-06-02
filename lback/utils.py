@@ -73,8 +73,10 @@ def lback_settings():
    import json
    return json.loads( file.read() ) 
 
-def lback_backup_path( id ):
-   return "{}/{}{}".format(lback_backup_dir(), id, lback_backup_ext())
+def lback_backup_path( id, shard=None ):
+   if shard is None:
+      return "{}/{}{}".format(lback_backup_dir(), id, lback_backup_ext())
+   return "{}/{}_{}{}".format(lback_backup_dir(), id, shard, lback_backup_ext())
 
 
 def lback_backup( id ):
@@ -85,14 +87,33 @@ def lback_backup( id ):
    db_backup = select_cursor.fetchone()
    return BackupObject(db_backup)
 
-def lback_backup_chunked_file( id, chunk_size= 1048576 ):
+def lback_backup_shard_size( id, count ):
+  return ( os.stat( lback_backup_path( id ) ).st_size / count )
+
+def lback_backup_shard_start_end( shard_count, sharded_backup_size ):
+  shard_start = ( shard_count * sharded_backup_size )
+  shard_end = ( shard_start + sharded_backup_size )
+  return [ shard_start, shard_end ]
+
+
+
+def lback_backup_chunked_file( id, chunk_size= 1048576, chunk_start=0, chunk_end=None ):
+   bytes_read = [0]
+   def read_bytes():
+      if not ( chunk_end is None ) and ( bytes_read[0] > chunk_end ):
+         return ""
+      content = file_handler.read( chunk_size )
+      bytes_read[0] += chunk_size
+      return content
+
    with open( lback_backup_path( id ), "rb" ) as file_handler:
-       content = file_handler.read( chunk_size )
+       file_handler.seek( chunk_start )
+       content = read_bytes()
        while content!="":
          lback_output("CHUNK CONTENT")
          lback_output(content)
          packed_content = content
-         content = file_handler.read( chunk_size )
+         content = read_bytes()
          yield packed_content
 
 def lback_agents():
@@ -106,6 +127,14 @@ def lback_agents():
 	agents.append( AgentObject( db_agent ) )
 	db_agent = select_cursor.fetchone()
    return agents
+
+def lback_agent_is_available(agent_object):
+   sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+   sock.settimeout(2)
+   result = sock.connect_ex((agent_object.host, int(agent_object.port)))
+   if result == 0:
+       return True
+   return False
 
 def lback_backups():
    from .backup import BackupObject
@@ -123,8 +152,15 @@ def lback_backups():
 def lback_backup_remove( id ):
    os.remove( lback_backup_path( id ) )
 
-def lback_id(salt=""):
-    return hashlib.sha1("{}_{}".format(salt, uuid.uuid4())).hexdigest()
+def lback_id(id=None,shard=None,salt=""):
+    result = ""
+    if id is None:
+      id = hashlib.sha1("{}_{}".format(salt, str( uuid.uuid4() ))).hexdigest()
+    result = id
+    if shard is None:
+       return result
+    result = "{}_{}".format(id, shard)
+    return result
 def lback_id_temp(existing_id):
     return "{}-TEMP-{}".format(existing_id, str(uuid.uuid4()))
 
