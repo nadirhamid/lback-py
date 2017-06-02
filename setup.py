@@ -32,7 +32,8 @@ def create_db():
      folder VARCHAR(255),
      dirname VARCHAR(255),
      size VARCHAR(255),
-     encryption_key VARCHAR(255) DEFAULT NULL
+     encryption_key VARCHAR(255) DEFAULT NULL,
+     distribution_strategy VARCHAR(255) DEFAULT "shared"
     ); """)
   cursor.execute(r"""
      CREATE TABLE agents (

@@ -6,6 +6,7 @@ from .utils import lback_db, lback_output
 from .backup import BackupObject
 
 class Operation( object ):
+  PARSERS = []
   def __init__( self, args, client, db ):
       self.args = args 
       self.client= client
@@ -35,6 +36,9 @@ class Operation( object ):
   def _run(self):
      self.client._run( self )
   def run(self):
+      for parser in self.PARSERS:
+         parser_instance = parser( self.args )
+         parser_instance.run()
       map( lambda folder_or_id: self._run( folder_or_id ), self.globs )
 
 class OperationNoGlobs(object):

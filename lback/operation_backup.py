@@ -2,6 +2,7 @@
 from .operation import Operation
 from .operation_restore import OperationRestore
 from .operation_args import OperationArgs
+from .parser_distribution_strategy import ParserDistributionStrategy
 from .utils import lback_output, lback_id, lback_error, lback_temp_path, lback_backup, get_folder_size
 from .backup import Backup, BackupException, BackupObject
 import glob
@@ -10,6 +11,9 @@ import os
 import time
 
 class OperationBackup(Operation):
+    PARSERS = [
+        ParserDistributionStrategy
+    ]
     def _get_all_globs(self):
       folders_or_ids = self.args.folder
       db = self.db
@@ -34,8 +38,8 @@ class OperationBackup(Operation):
 
         def complete_backup():
             size = get_folder_size(folder)
-            insert_cursor = db.cursor().execute("INSERT INTO backups (id, time, folder, dirname, size, name, encryption_key) VALUES (%s, %s, %s, %s, %s, %s, %s)", 
-              (id, time.time(), folder, dirname, size, args.name, args.encryption_key,))
+            insert_cursor = db.cursor().execute("INSERT INTO backups (id, time, folder, dirname, size, name, encryption_key, distribution_strategy) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)", 
+              (id, time.time(), folder, dirname, size, args.name, args.encryption_key, args.distribution_strategy, ))
             db.commit()
 
             lback_output("Backup OK. Now saving to disk")

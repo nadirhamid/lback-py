@@ -1,8 +1,8 @@
-
 from .utils import lback_untitled, lback_backup_dir, lback_backup_ext, lback_db, lback_output, lback_error, lback_print, lback_id,lback_settings, get_folder_size
 from .restore import Restore, RestoreException
 from .backup import Backup, BackupException
 from .operation_backup import OperationBackup
+from .operation_modify import OperationModify
 from .operation_restore import OperationRestore
 from .operation_ls import OperationLs
 from .operation_rm import OperationRm
@@ -11,6 +11,7 @@ from .operation_relocate import OperationRelocate
 from .operation_agent_add import OperationAgentAdd
 from .operation_agent_rm import OperationAgentRm
 from .operation_agent_ls import OperationAgentLs
+
 
 from lback_grpc.client import Client
 from os import getenv
@@ -34,10 +35,15 @@ class Runtime(object):
     backup_parser.add_argument("--name", help="Name for backup", default=untitled)
     backup_parser.add_argument("--diff", help="Runs a differential backup")
     backup_parser.add_argument("--remove", action="store_true", help="Remove backup when done", default=False)
+    backup_parser.add_argument("--distribution-strategy", help="Defines the distribution strategy for the backup", default="shared")
     backup_parser.add_argument("--local",default=True, action="store_true") 
     backup_parser.add_argument("--encryption-key", help="Set an encryption key for the backup")
     backup_parser.set_defaults(backup=True)
 
+    modify_parser = sub_parser.add_parser("modify", help="Make modifications to a backup")
+    modify_parser.add_argument("id", help="Select the ID", nargs="*")
+    modify_parser.add_argument("--distribution-strategy", help="Defines the distribution strategy for the backup", default="shared")
+    modify_parser.set_defaults(modify=True)
 
     restore_parser = sub_parser.add_parser("restore", help="Run a restore")
     restore_parser.add_argument("id", help="Select the ID", nargs="*")
@@ -98,6 +104,8 @@ class Runtime(object):
     operation_args = [ args, client, db ]
     if check_parser("backup"):
       operation = OperationBackup(*operation_args)
+    if check_parser("modify"):
+      operation = OperationModify(*operation_args)
     if check_parser("restore"):
       operation = OperationRestore(*operation_args)
     if check_parser("rm"):

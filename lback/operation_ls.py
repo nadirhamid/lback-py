@@ -12,12 +12,12 @@ class OperationLs(OperationNoGlobs):
         args = self.args
         current_dir = os.getcwd()
         select_cursor = db.cursor()
-	select_cursor.execute("SELECT * FROM backups WHERE dirname = %s",( current_dir, ))
+        select_cursor.execute("SELECT * FROM backups WHERE dirname = %s",( current_dir, ))
         db_backup = select_cursor.fetchone()
         while db_backup:
-	  backup = BackupObject( db_backup )
+          backup = BackupObject( db_backup )
           filename = backup.get_filename()
-          lback_print("%s\t%s"%(backup.id, filename), "white")
+          lback_print("%s\t%s\t%s"%(backup.id, filename, backup.distribution_strategy), "white")
           db_backup = select_cursor.fetchone()
       except Exception, ex:
         lback_error(ex)	
