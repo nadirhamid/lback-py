@@ -177,8 +177,6 @@ def lback_backup_chunked_file( id, chunk_size= 1048576, chunk_start=0, chunk_end
        file_handler.seek( chunk_start )
        content = read_bytes()
        while content!="":
-         lback_output("CHUNK CONTENT")
-         lback_output(content)
          packed_content = content
          content = read_bytes()
          yield packed_content
