@@ -66,4 +66,5 @@ target/
 /*.pyc
 /*.egg-info
 /MANIFEST
+/bin/*
 

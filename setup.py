@@ -89,7 +89,8 @@ deps = [
     "pycrypto==2.6.1",
     "enum34==1.1.6",
     "six==1.10.0",
-    "protobuf==3.3.0"
+    "protobuf==3.3.0",
+    "pyinstaller==3.0"
 ]
 
 
