@@ -5,7 +5,6 @@ import sys
 import  zipfile
 import json
 from . import log
-from termcolor import colored
 import uuid
 import MySQLdb
 import tempfile
@@ -16,6 +15,7 @@ import tarfile
 import sys
 import base64
 import shutil
+from termcolor import colored
 from hashlib import md5
 from Crypto.Cipher import AES
 from Crypto import Random
@@ -164,16 +164,24 @@ def lback_backup_shard_start_end( shard_count, sharded_backup_size ):
 
 
 
-def lback_backup_chunked_file( id, chunk_size= 1048576, chunk_start=0, chunk_end=None ):
+def lback_backup_chunked_file( id, chunk_size=128000, chunk_start=0, chunk_end=None ):
    bytes_read = [0]
+   path = lback_backup_path( id )
+   file_size = os.stat( path ).st_size
+   if file_size < chunk_size:
+      chunk_size = file_size
+   if not chunk_end:
+      chunk_end = file_size
+   bytes_needed = ( chunk_end - chunk_start )
    def read_bytes():
-      if not ( chunk_end is None ) and ( bytes_read[0] > chunk_end ):
+      if bytes_needed == bytes_read[ 0 ]:
          return ""
       content = file_handler.read( chunk_size )
       bytes_read[0] += chunk_size
+      lback_output("BYTES READ %s/%s"%( bytes_read[0], bytes_needed ) )
       return content
 
-   with open( lback_backup_path( id ), "rb" ) as file_handler:
+   with open( path, "rb" ) as file_handler:
        file_handler.seek( chunk_start )
        content = read_bytes()
        while content!="":
@@ -227,7 +235,7 @@ def lback_id(id=None,shard=None,salt=""):
     result = "{}_{}".format(id, shard)
     return result
 def lback_id_temp(existing_id):
-    return "{}-TEMP-{}".format(existing_id, str(uuid.uuid4()))
+    return "{}_T".format(existing_id)
 
 def lback_validate_id(id):
    if not len( id ) > 6:

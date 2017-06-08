@@ -68,7 +68,7 @@ class Runtime(object):
     mv_parser.set_defaults(mv=True)
     mv_parser.set_defaults(name=False)
 
-    relocate_parser = sub_parser.add_parser("mv", help="Relocate a certain backup")
+    relocate_parser = sub_parser.add_parser("relocate", help="Relocate a certain backup")
     relocate_parser.add_argument("id", help="Select the ID")
     relocate_parser.add_argument("src", help="Select the Source")
     relocate_parser.add_argument("dst", help="Select the Dest")
