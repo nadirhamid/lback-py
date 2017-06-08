@@ -50,8 +50,10 @@ class installsetup(install):
     def run(self):
       create_db()
       base_dir = "%s/.lback"%(os.getenv("HOME"))
+      backup_dir = "%s/backups"%( base_dir )
       shutil.rmtree( base_dir )
       os.makedirs( base_dir )
+      os.makedirs( backup_dir )
       shutil.copy( "./settings.json", "%s/%s"%( base_dir, "settings.json" ) )
       install.run(self)
 
