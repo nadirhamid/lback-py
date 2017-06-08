@@ -1,7 +1,7 @@
 import shutil
 import tempfile
 import os
-from .utils import untar, lback_backup_dir, lback_backup_ext, lback_backup_path, lback_backup_chunked_file, lback_decrypt, lback_id_temp, lback_backup, lback_temp_file
+from .utils import untar, lback_backup_dir, lback_backup_ext, lback_backup_path, lback_backup_chunked_file, lback_decrypt, lback_id_temp, lback_backup, lback_temp_file, lback_error
 
 class Restore(object):
   def __init__(self, backup_id, folder='./'):
@@ -24,7 +24,8 @@ class Restore(object):
   def run_chunked(self, iterator):
      db_backup = lback_backup(self.backup_id)
      def rollback():
-         os.remove( self.archive )
+         ##os.remove( self.archive )
+         pass
      def verify_chunk():
         if not chunk:
            raise RestoreException("Unable to restore. Receiving from stream failed")
@@ -36,6 +37,7 @@ class Restore(object):
              self.run()
      except Exception,ex:
          rollback()
+         lback_error( ex )
          raise ex
 
 class RestoreException(Exception):

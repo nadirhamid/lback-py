@@ -149,8 +149,8 @@ def lback_backups():
    return backups
 
 
-def lback_backup_remove( id ):
-   os.remove( lback_backup_path( id ) )
+def lback_backup_remove( id, shard=None ):
+   os.remove( lback_backup_path( id=id, shard=shard ) )
 
 def lback_id(id=None,shard=None,salt=""):
     result = ""
