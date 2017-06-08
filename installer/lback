@@ -1,6 +1,9 @@
+#!/usr/bin/python2.7
 import sys
 from lback.runtime import Runtime
+from lback.utils import lback_init_if_needed
 if __name__ =='__main__':
+   lback_init_if_needed()
    runtime = Runtime(sys.argv)
    runtime.run()
 

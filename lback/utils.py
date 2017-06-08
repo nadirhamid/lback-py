@@ -1,6 +1,7 @@
 
 import time,socket
 import os
+import sys
 import  zipfile
 import json
 from . import log
@@ -14,11 +15,66 @@ import time
 import tarfile
 import sys
 import base64
+import shutil
 from hashlib import md5
 from Crypto.Cipher import AES
 from Crypto import Random
 
 
+
+def lback_init_if_needed():
+  if not os.path.exists( lback_dir() ):
+      os.makedirs(lback_dir())
+      os.makedirs(lback_backup_path())
+      if getattr(sys, 'frozen', False):
+        # If the application is run as a bundle, the pyInstaller bootloader
+        # extends the sys module by a flag frozen=True and sets the app 
+        # path into variable _MEIPASS'.
+        application_path = sys._MEIPASS
+      else:
+        application_path = os.path.dirname(os.path.abspath(__file__))
+      lback_output("INITIALIZING FIRST USE OF LBACK AT PATH %s"%(application_path))
+
+      initial_settings_file = os.path.abspath(os.path.join(application_path, "..", "conf", "settings.json"))
+      user_settings_file = os.path.join("%s/settings.json"%(lback_dir()))
+      lback_output("COPIYING PATH SETTINGS %s TO %s"%(initial_settings_file, user_settings_file))
+      shutil.copy(
+            initial_settings_file,
+            user_settings_file
+      )
+      settings_file = lback_resolve_path("settings.json")
+      with open(settings_file, "r+") as file:
+           config = json.loads( file.read() )
+      db = config['master']['database']
+      connection = MySQLdb.connect(db['host'], db['user'], db['pass'], db['name'])
+      cursor = connection.cursor()
+      cursor.execute(r"""DROP TABLE IF EXISTS backups""")
+      cursor.execute(r"""DROP TABLE IF EXISTS agents""")
+      cursor.execute(r"""
+         CREATE TABLE backups (
+         id VARCHAR(255),
+         name VARCHAR(50),
+         time DOUBLE,
+         folder VARCHAR(255),
+         dirname VARCHAR(255),
+         size VARCHAR(255),
+         encryption_key VARCHAR(255) DEFAULT NULL,
+         distribution_strategy VARCHAR(255) DEFAULT "shared",
+         shards_total smallint(3)
+        ); """)
+      cursor.execute(r"""
+         CREATE TABLE agents (
+         id VARCHAR(255),
+         host VARCHAR(50),
+         port VARCHAR(5)
+        ); """)
+      ## add local agent by default
+      localhost_agent_host = "127.0.0.1"
+      localhost_agent_port = "5750"
+      lback_output("ADDING LOCALHOST AGENT ON %s:%s"%( localhost_agent_host, localhost_agent_port ) )
+      cursor.execute(r"""INSERT INTO agents(id, host, port) VALUES (%s, %s, %s)""", (lback_id(), localhost_agent_host, localhost_agent_port, ) )
+      connection.commit()
+      lback_output("INITIZATION DONE. FOR LBACK SUPPORT AND COMMENTS PLEASE GO TO http://lback.io/support/")
 
 def lback_output(*args,**kwargs):
   type = kwargs['type'] if "type" in kwargs.keys() else "INFO"
@@ -54,7 +110,7 @@ def lback_backup_dir():
     return lback_dir()+"/backups/"
 
 def lback_backup_ext():
-    return ".tar.gz"
+    return ""
 
 def lback_temp_dir():
     return lback_dir()+"/temp/"
@@ -68,12 +124,23 @@ def lback_temp_file():
     tfile.close()
     return open(tfile.name,"wb")
 
+def lback_resolve_path(file):
+   local_path = "%s/%s"%(lback_dir(), file)
+   if os.path.exists( local_path ):
+       return local_path
+   global_path =  "/etc/lback/%s"%( file )
+   if not os.path.exists(global_path):
+       return None
+   return global_path
+
+
+
 def lback_settings():
-   file = open("%s/settings.json"%(lback_dir()), "r+")
    import json
+   file = open( lback_resolve_path("settings.json"), "r+" )
    return json.loads( file.read() ) 
 
-def lback_backup_path( id, shard=None ):
+def lback_backup_path( id="", shard=None ):
    if shard is None:
       return "{}/{}{}".format(lback_backup_dir(), id, lback_backup_ext())
    return "{}/{}_{}{}".format(lback_backup_dir(), id, shard, lback_backup_ext())

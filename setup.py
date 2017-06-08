@@ -48,32 +48,11 @@ def create_db():
 
 class installsetup(install):
     def run(self):
-      version = get_version()
-      cwd = os.getcwd()
-      os.remove(cwd+"/db.sql")
-      db = open(cwd+"/db.sql","w+")
-      db.close()
-      home_path = os.getenv("HOME")
-    
-        
-      if os.path.isdir("%s/.lback"%(home_path)):
-          shutil.rmtree("%s/.lback"%(home_path))
-
-      os.makedirs("%s/.lback"%(home_path))
-      os.makedirs("%s/.lback/backups/"%(home_path))
-      os.makedirs("%s/.lback/bin/"%(home_path))
-    
-      lback_path = "%s/.lback/"%(home_path)
-      links = [
-            (cwd+"/bin/lback", "%s/bin/lback"%(lback_path)),
-            (cwd+"/settings.json", "%s/settings.json"%(lback_path)),
-            (cwd+"/db.sql", "%s/db.sql"%(lback_path))
-        ]
-      for i in links:
-          if os.path.exists(i[1]):
-              os.remove(i[1])
-          shutil.copy( i[0], i[1] )
       create_db()
+      base_dir = "%s/.lback"%(os.getenv("HOME"))
+      shutil.rmtree( base_dir )
+      os.makedirs( base_dir )
+      shutil.copy( "./settings.json", "%s/%s"%( base_dir, "settings.json" ) )
       install.run(self)
 
 def get_version():
