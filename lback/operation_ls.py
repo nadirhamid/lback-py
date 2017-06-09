@@ -12,7 +12,10 @@ class OperationLs(OperationNoGlobs):
         args = self.args
         current_dir = os.getcwd()
         select_cursor = db.cursor()
-        select_cursor.execute("SELECT * FROM backups WHERE dirname = %s",( current_dir, ))
+        if not args.system:
+            select_cursor.execute("SELECT * FROM backups WHERE dirname = %s",( current_dir, ))
+        else:
+            select_cursor.execute("SELECT * FROM backups")
         db_backup = select_cursor.fetchone()
         while db_backup:
           backup = BackupObject( db_backup )

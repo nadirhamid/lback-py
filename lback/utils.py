@@ -4,7 +4,6 @@ import os
 import sys
 import  zipfile
 import json
-from . import log
 import uuid
 import MySQLdb
 import tempfile
@@ -19,6 +18,8 @@ from termcolor import colored
 from hashlib import md5
 from Crypto.Cipher import AES
 from Crypto import Random
+from . import log
+
 
 
 
@@ -175,10 +176,16 @@ def lback_backup_chunked_file( id, chunk_size=128000, chunk_start=0, chunk_end=N
       chunk_end = file_size
    bytes_needed = ( chunk_end - chunk_start )
    def read_bytes():
+      bytes_remaining = ( bytes_needed - bytes_read[ 0 ] )
+      increment = chunk_size
+      if bytes_remaining < chunk_size:
+         increment = bytes_remaining
+
       if bytes_needed == bytes_read[ 0 ]:
          return ""
       content = file_handler.read( chunk_size )
-      bytes_read[0] += chunk_size
+
+      bytes_read[0] += increment
       lback_output("BYTES READ %s/%s"%( bytes_read[0], bytes_needed ) )
       return content
 
@@ -190,15 +197,18 @@ def lback_backup_chunked_file( id, chunk_size=128000, chunk_start=0, chunk_end=N
          content = read_bytes()
          yield packed_content
 
-def lback_agents():
-   from .agent import AgentObject
+def lback_agents( transform_cls = None ):
+   if transform_cls is None:
+     from .agent import AgentObject
+     transform_cls = AgentObject
+
    db = lback_db()
    select_cursor = db.cursor()
    select_cursor.execute("SELECT * FROM agents")
    db_agent = select_cursor.fetchone()
    agents = []
    while db_agent:
-	agents.append( AgentObject( db_agent ) )
+	agents.append( transform_cls( db_agent ) )
 	db_agent = select_cursor.fetchone()
    return agents
 

@@ -60,6 +60,7 @@ class Runtime(object):
     rm_parser.set_defaults(rm=True)
 
     ls_parser = sub_parser.add_parser("ls", help="List backups")
+    ls_parser.add_argument("--system", help="List system wide backups", default=False, action="store_true")
     ls_parser.set_defaults(ls=True)
 
     mv_parser = sub_parser.add_parser("mv", help="Move mounted backup")
