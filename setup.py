@@ -32,6 +32,7 @@ def create_db():
      folder VARCHAR(255),
      dirname VARCHAR(255),
      size VARCHAR(255),
+     backup_type VARCHAR(24),
      encryption_key VARCHAR(255) DEFAULT NULL,
      distribution_strategy VARCHAR(255) DEFAULT "shared",
      shards_total smallint(3)

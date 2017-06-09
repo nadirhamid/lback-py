@@ -4,11 +4,15 @@ import os
 from .utils import untar, lback_backup_dir, lback_backup_ext, lback_backup_path, lback_backup_chunked_file, lback_decrypt, lback_id_temp, lback_backup, lback_temp_file, lback_error
 
 class Restore(object):
-  def __init__(self, backup_id, folder='./'):
-    self.archive = lback_backup_path( backup_id )
+  def __init__(self, backup_id, folder='./', run=True):
+    self.archive = lback_backup_path( backup_id,suffix="R" )
     self.backup_id = backup_id
     self.folder = folder
+    self.do_run = run
   def run(self, local=False):
+    if not self.do_run:
+       return
+
     backup_dir = lback_backup_dir()
     db_backup = lback_backup(self.backup_id)
     temp_file = lback_temp_file()
@@ -21,6 +25,7 @@ class Restore(object):
         run_decryptor()
 
     untar(self.archive, self.folder)
+    os.remove( self.archive )
   def run_chunked(self, iterator):
      db_backup = lback_backup(self.backup_id)
      def rollback():

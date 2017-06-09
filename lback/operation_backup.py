@@ -35,11 +35,13 @@ class OperationBackup(Operation):
         id =lback_id(salt=folder)
         dirname = os.path.dirname( folder )
         bkp = Backup(id, folder, diff=args.diff, encryption_key=args.encryption_key)
+        bkp_type = [ "" ]
+
 
         def complete_backup():
             size = get_folder_size(folder)
-            insert_cursor = db.cursor().execute("INSERT INTO backups (id, time, folder, dirname, size, name, encryption_key, distribution_strategy) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)", 
-              (id, time.time(), folder, dirname, size, args.name, args.encryption_key, args.distribution_strategy, ))
+            insert_cursor = db.cursor().execute("INSERT INTO backups (id, time, folder, dirname, size, backup_type, name, encryption_key, distribution_strategy) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)", 
+              (id, time.time(), folder, dirname, size, bkp_type[ 0 ], args.name, args.encryption_key, args.distribution_strategy, ))
             db.commit()
 
             lback_output("Backup OK. Now saving to disk")
@@ -49,6 +51,8 @@ class OperationBackup(Operation):
             self.client._run(self, backup)
 
         def new_backup():
+            lback_output("RUNNING FULL BACKUP")
+            bkp_type[ 0 ] = "full"
             bkp.run()
             complete_backup()
             if args.remove:
@@ -56,6 +60,8 @@ class OperationBackup(Operation):
               lback_output("Directory successfully deleted..")
 
         def diff_backup():
+             lback_output("RUNNING DIFFERENTIAL BACKUP")
+             bkp_type[ 0 ] = "diff"
              bkp_object = BackupObject.find_by_id( args.diff )
              if not bkp_object:
                 lback_error("No such backup exists..")

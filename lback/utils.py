@@ -116,7 +116,7 @@ def lback_temp_dir():
     return lback_dir()+"/temp/"
 
 def lback_temp_path():
-   return "{}/".format(lback_temp_dir(), str(uuid.uuid4()))
+   return "{}/{}".format(lback_temp_dir(), str(uuid.uuid4()))
 def lback_temp_file():
     tfile = tempfile.NamedTemporaryFile()
     tfile.write("")
@@ -140,10 +140,11 @@ def lback_settings():
    file = open( lback_resolve_path("settings.json"), "r+" )
    return json.loads( file.read() ) 
 
-def lback_backup_path( id="", shard=None ):
-   if shard is None:
-      return "{}/{}{}".format(lback_backup_dir(), id, lback_backup_ext())
-   return "{}/{}_{}{}".format(lback_backup_dir(), id, shard, lback_backup_ext())
+def lback_backup_path( id="", shard=None, suffix="" ):
+   text = "{}/{}{}".format(lback_backup_dir(), id, lback_backup_ext())
+   if not shard is None:
+       text = "{}/{}_{}{}".format(lback_backup_dir(), id, shard, lback_backup_ext())
+   return "{}{}".format( text, suffix )
 
 
 def lback_backup( id ):
@@ -216,14 +217,17 @@ def lback_backups():
    select_cursor.execute("SELECT * FROM backups")
    db_backup = select_cursor.fetchone()
    backups = []
-   while db_agent:
+   while db_backup:
 	backups.append( BackupObject( db_backup ) )
-	db_backups = select_cursor.fetchone()
+	db_backup = select_cursor.fetchone()
    return backups
 
 
 def lback_backup_remove( id, shard=None ):
    os.remove( lback_backup_path( id=id, shard=shard ) )
+
+def lback_backup_move( backup_path_1, backup_path_2 ):
+   shutil.move( backup_path_1, backup_path_2 )
 
 def lback_id(id=None,shard=None,salt=""):
     result = ""
@@ -288,6 +292,14 @@ def lback_db( ):
   db = config['master']['database']
   connection = MySQLdb.connect(db['host'], db['user'], db['pass'], db['name'])
   return connection
+
+def lback_make_temp_backup(backup):
+  temp_backup_id = lback_id_temp( backup.id )
+  real_backup_path = lback_backup_path( backup.id )
+  temp_backup_path = lback_backup_path( temp_backup_id )
+  shutil.copy( real_backup_path, temp_backup_path )
+  return temp_backup_id
+
 def untar(source_filename, dest_dir):
     try:
        tarfile.TarFile( source_filename ).extractall( dest_dir )
