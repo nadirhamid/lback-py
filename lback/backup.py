@@ -56,7 +56,7 @@ class Backup(object):
     if self.encryption_key:
         lback_output( "Encrypting backup.. This may take a moment." )
         temp_file = lback_temp_file()
-        with open(self.backup_path, "rb") as in_file, temp_file as out_file:
+        with open(self.backup_path, "rb") as in_file, open(temp_file.name, "wb") as out_file:
            lback_encrypt(in_file, out_file, self.encryption_key)
         shutil.move(temp_file.name, self.backup_path)
   def _can_add(self, file_path):

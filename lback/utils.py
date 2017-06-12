@@ -123,7 +123,7 @@ def lback_temp_file():
     tfile.write("")
     tfile.seek(0)
     tfile.close()
-    return open(tfile.name,"wb")
+    return tfile
 
 def lback_resolve_path(file):
    local_path = "%s/%s"%(lback_dir(), file)
@@ -166,9 +166,11 @@ def lback_backup_shard_start_end( shard_count, sharded_backup_size ):
 
 
 
-def lback_backup_chunked_file( id, chunk_size=128000, chunk_start=0, chunk_end=None ):
+def lback_backup_chunked_file( identifier, chunk_size=128000, chunk_start=0, chunk_end=None, use_backup_path=True ):
    bytes_read = [0]
-   path = lback_backup_path( id )
+   path = identifier
+   if use_backup_path:
+      path = lback_backup_path( identifier )
    file_size = os.stat( path ).st_size
    if file_size < chunk_size:
       chunk_size = file_size

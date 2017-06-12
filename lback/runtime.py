@@ -74,6 +74,7 @@ class Runtime(object):
     relocate_parser.add_argument("id", help="Select the ID")
     relocate_parser.add_argument("src", help="Select the Source")
     relocate_parser.add_argument("dst", help="Select the Dest")
+    relocate_parser.add_argument("--shard", help="Shard to relocate for sharded distribution strategies")
     relocate_parser.set_defaults(relocate=True)
     relocate_parser.set_defaults(name=False)
 
@@ -130,6 +131,5 @@ class Runtime(object):
       operation = OperationAgentLs(*operation_args)
     if check_parser("focus"):
       operation = OperationFocus(*operation_args)
-    if check_parser("focus"):
     operation.run()
     db.close()

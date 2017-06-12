@@ -17,7 +17,7 @@ class Restore(object):
     db_backup = lback_backup(self.backup_id)
     temp_file = lback_temp_file()
     def run_decryptor():
-        with open(self.archive, "rb") as in_file, temp_file as out_file:
+        with open(self.archive, "rb") as in_file, open(temp_file.name, "wb") as out_file:
            lback_decrypt(in_file, out_file, db_backup.encryption_key)
         shutil.move(temp_file.name, self.archive)
 
