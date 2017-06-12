@@ -11,6 +11,7 @@ from .operation_relocate import OperationRelocate
 from .operation_agent_add import OperationAgentAdd
 from .operation_agent_rm import OperationAgentRm
 from .operation_agent_ls import OperationAgentLs
+from .operation_focus import OperationFocus
 
 
 from lback_grpc.client import Client
@@ -92,6 +93,10 @@ class Runtime(object):
     agent_ls_parser.set_defaults(agent_ls=True)
     agent_ls_parser.set_defaults(name=False)
 
+    focus_parser = sub_parser.add_parser("focus", help="Focuses on an agent for backups/restores")
+    focus_parser.set_defaults(focus=True)
+
+
     self.args = parser.parse_args()
   def run(self):
     args = self.args
@@ -123,5 +128,8 @@ class Runtime(object):
       operation = OperationAgentRm(*operation_args)
     if check_parser("agent_ls"):
       operation = OperationAgentLs(*operation_args)
+    if check_parser("focus"):
+      operation = OperationFocus(*operation_args)
+    if check_parser("focus"):
     operation.run()
     db.close()

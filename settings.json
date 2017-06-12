@@ -1,9 +1,9 @@
 {
 	"master": {
 		"database": {
-			"host": "localhost",
-			"user": "root",
-			"pass": "101010",
+			"host": "162.243.235.80",
+			"user": "remote",
+			"pass": "iamremote10",
 			"name": "lback"
 		}
 	},
