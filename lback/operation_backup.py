@@ -31,58 +31,25 @@ class OperationBackup(Operation):
       try:
         db = self.db
         args = self.args
-        folder = os.path.abspath( rel_folder )
+        folder = os.path.abspath(rel_folder)
         id =lback_id(salt=folder)
         dirname = os.path.dirname( folder )
+
         bkp = Backup(id, folder, diff=args.diff, encryption_key=args.encryption_key)
-        bkp_type = [ "" ]
-
-
         def complete_backup():
-            size = get_folder_size(folder)
-            insert_cursor = db.cursor().execute("INSERT INTO backups (id, time, folder, dirname, size, backup_type, name, encryption_key, distribution_strategy) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)", 
-              (id, time.time(), folder, dirname, size, bkp_type[ 0 ], args.name, args.encryption_key, args.distribution_strategy, ))
+            size = backup_res.backup_size
+            bkp_type = "full"
+            if args.diff:
+                bkp_type = "diff"
+            insert_cursor = db.cursor().execute("INSERT INTO backups (id, time, folder, dirname, size, backup_type, name, encryption_key, distribution_strategy) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)",
+              (id, time.time(), folder, dirname, size, bkp_type, args.name, args.encryption_key, args.distribution_strategy, ))
             db.commit()
 
             lback_output("Backup OK. Now saving to disk")
             lback_output("Local Backup has been successfully stored")
             lback_output("Transaction ID: " + id)
             backup =lback_backup( id )
-            self.client._run(self, backup)
-
-        def new_backup():
-            lback_output("RUNNING FULL BACKUP")
-            bkp_type[ 0 ] = "full"
-            bkp.run()
-            complete_backup()
-            if args.remove:
-              shutil.rmtree(folder)
-              lback_output("Directory successfully deleted..")
-
-        def diff_backup():
-             lback_output("RUNNING DIFFERENTIAL BACKUP")
-             bkp_type[ 0 ] = "diff"
-             bkp_object = BackupObject.find_by_id( args.diff )
-             if not bkp_object:
-                lback_error("No such backup exists..")
-             restore_path = lback_temp_path()
-             os.makedirs(restore_path)
-             restore_args = OperationArgs(
-                id=[args.diff], 
-                folder=restore_path,
-                name=False,
-                clean=False)
-             restore_op = OperationRestore(restore_args,self.client,db)
-             restore_op.run()
-             bkp.run_diff( restore_path )
-             complete_backup()
-             ##shutil.rmtree(restore_path)
-             lback_output("Restore snapshot removed successfully")
-        if args.diff:
-            diff_backup()
-        else:
-            new_backup()
-      except BackupException, ex:
-        lback_error(ex)	
+        backup_res = self.client._run(self, bkp)
+        complete_backup()
       except Exception, ex:
         lback_error(ex)	

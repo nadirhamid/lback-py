@@ -39,6 +39,7 @@ class Runtime(object):
     backup_parser.add_argument("--distribution-strategy", help="Defines the distribution strategy for the backup", default="shared")
     backup_parser.add_argument("--local",default=True, action="store_true") 
     backup_parser.add_argument("--encryption-key", help="Set an encryption key for the backup")
+    backup_parser.add_argument("--target", help="Target agent for the backup")
     backup_parser.set_defaults(backup=True)
 
     modify_parser = sub_parser.add_parser("modify", help="Make modifications to a backup")
@@ -51,6 +52,7 @@ class Runtime(object):
     restore_parser.add_argument("--name", help="Filter to a specific name", default=False)
     restore_parser.add_argument("--clean", action="store_true", help="Clean backup on completion", default=False)
     restore_parser.add_argument("--folder", help="Restore to specific path", default=False)
+    restore_parser.add_argument("--target", help="Target agent to restore on")
     restore_parser.set_defaults(restore=True)
 
     rm_parser = sub_parser.add_parser("rm", help="Delete existing backup")

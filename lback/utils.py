@@ -125,6 +125,14 @@ def lback_temp_file():
     tfile.close()
     return tfile
 
+def lback_temp_from_chunks(iterator):
+   temp_file = lback_temp_file()
+   with open(temp_file.name, "wb") as temp_write:
+        for chunk in iterator:
+            temp_write.write( chunk )
+   return temp_file
+
+
 def lback_resolve_path(file):
    local_path = "%s/%s"%(lback_dir(), file)
    if os.path.exists( local_path ):
@@ -241,11 +249,11 @@ def lback_backup_remove( id, shard=None ):
 def lback_backup_move( backup_path_1, backup_path_2 ):
    shutil.move( backup_path_1, backup_path_2 )
 
-def lback_id(id=None,shard=None,salt=""):
+def lback_id(id=None,shard=None,salt="",suffix=""):
     result = ""
     if id is None:
       id = hashlib.sha1("{}_{}".format(salt, str( uuid.uuid4() ))).hexdigest()
-    result = id
+    result = "{}{}".format(id, suffix)
     if shard is None:
        return result
     result = "{}_{}".format(id, shard)

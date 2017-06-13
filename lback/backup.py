@@ -6,14 +6,16 @@ import shutil
 import tempfile
 from .db import DBObject
 from .utils import lback_backup_dir,lback_backup_ext,lback_output,lback_backup_path, is_writable, lback_db, lback_backup_chunked_file, lback_backup_path, lback_id_temp, lback_encrypt, lback_temp_file
+from .basic_wrapper import BasicWrapper
 from .archive import Archive
 
-class Backup(object):
+class Backup(BasicWrapper):
+  SUFFIX = ""
   def __init__(self, backup_id, folder, temp=False, diff=False, encryption_key=False):
     backup_dir = lback_backup_dir()
     self.archive_list = []
-    self.backup_id = backup_id
-    self.backup_path = lback_backup_path(self.backup_id)
+    self.id = backup_id
+    self.backup_path = self.get_file()
     self.encryption_key=encryption_key
     self.folder = folder
     self.diff = diff
@@ -31,7 +33,7 @@ class Backup(object):
         if not chunk:
            raise BackupException("Unable to write backup. Stream failed")
 
-    path = lback_backup_path(self.backup_id ) 
+    path = lback_backup_path(self.id ) 
     try:
         with open( path, "w+" ) as backup_archive_file:
             for chunk in gen:
