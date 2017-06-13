@@ -31,25 +31,13 @@ class OperationBackup(Operation):
       try:
         db = self.db
         args = self.args
-        folder = os.path.abspath(rel_folder)
-        id =lback_id(salt=folder)
-        dirname = os.path.dirname( folder )
+        id =lback_id()
+        folder =os.path.abspath( rel_folder )
 
-        bkp = Backup(id, folder, diff=args.diff, encryption_key=args.encryption_key)
-        def complete_backup():
-            size = backup_res.backup_size
-            bkp_type = "full"
-            if args.diff:
-                bkp_type = "diff"
-            insert_cursor = db.cursor().execute("INSERT INTO backups (id, time, folder, dirname, size, backup_type, name, encryption_key, distribution_strategy) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)",
-              (id, time.time(), folder, dirname, size, bkp_type, args.name, args.encryption_key, args.distribution_strategy, ))
-            db.commit()
-
-            lback_output("Backup OK. Now saving to disk")
-            lback_output("Local Backup has been successfully stored")
-            lback_output("Transaction ID: " + id)
-            backup =lback_backup( id )
+        bkp = Backup(id, folder)
         backup_res = self.client._run(self, bkp)
-        complete_backup()
+        lback_output("Backup OK. Now saving to disk")
+        lback_output("Local Backup has been successfully stored")
+        lback_output("Transaction ID: " + id)
       except Exception, ex:
         lback_error(ex)	

@@ -41,10 +41,11 @@ def create_db():
      CREATE TABLE agents (
      id VARCHAR(255),
      host VARCHAR(50),
-     port VARCHAR(5)
+     port VARCHAR(5),
+     name VARCHAR(50)
     ); """)
   ## add local agent by default
-  cursor.execute(r"""INSERT INTO agents(id, host, port) VALUES (%s, %s, %s)""", (lback_id(), "127.0.0.1", "5750",))
+  cursor.execute(r"""INSERT INTO agents(id, host, port, name) VALUES (%s, %s, %s, %s)""", (lback_id(), "127.0.0.1", "5750", "localhost", ))
   connection.commit()
 
 class installsetup(install):
@@ -73,7 +74,8 @@ deps = [
     "enum34==1.1.6",
     "six==1.10.0",
     "protobuf==3.3.0",
-    "pyinstaller==3.0"
+    "pyinstaller==3.0",
+    "pystun==0.1.0"
 ]
 
 

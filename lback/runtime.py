@@ -1,4 +1,4 @@
-from .utils import lback_untitled, lback_backup_dir, lback_backup_ext, lback_db, lback_output, lback_error, lback_print, lback_id,lback_settings, get_folder_size
+from .utils import lback_untitled, lback_backup_dir, lback_backup_ext, lback_db, lback_output, lback_error, lback_print, lback_id,lback_settings, get_folder_size, lback_focused_agent, lback_unique_agent_name
 from .restore import Restore, RestoreException
 from .backup import Backup, BackupException
 from .operation_backup import OperationBackup
@@ -11,7 +11,7 @@ from .operation_relocate import OperationRelocate
 from .operation_agent_add import OperationAgentAdd
 from .operation_agent_rm import OperationAgentRm
 from .operation_agent_ls import OperationAgentLs
-from .operation_focus import OperationFocus
+from .operation_agent_focus import OperationAgentFocus
 
 
 from lback_grpc.client import Client
@@ -30,6 +30,7 @@ class Runtime(object):
     untitled = lback_untitled()
     parser = argparse.ArgumentParser()
     sub_parser = parser.add_subparsers()
+    target = lback_focused_agent()
      
     backup_parser = sub_parser.add_parser("backup", help="Backup files and folders") 
     backup_parser.add_argument("folder", help="Select a folder", nargs="*")
@@ -39,7 +40,7 @@ class Runtime(object):
     backup_parser.add_argument("--distribution-strategy", help="Defines the distribution strategy for the backup", default="shared")
     backup_parser.add_argument("--local",default=True, action="store_true") 
     backup_parser.add_argument("--encryption-key", help="Set an encryption key for the backup")
-    backup_parser.add_argument("--target", help="Target agent for the backup")
+    backup_parser.add_argument("--target", help="Target agent for the backup", default=target)
     backup_parser.set_defaults(backup=True)
 
     modify_parser = sub_parser.add_parser("modify", help="Make modifications to a backup")
@@ -52,7 +53,7 @@ class Runtime(object):
     restore_parser.add_argument("--name", help="Filter to a specific name", default=False)
     restore_parser.add_argument("--clean", action="store_true", help="Clean backup on completion", default=False)
     restore_parser.add_argument("--folder", help="Restore to specific path", default=False)
-    restore_parser.add_argument("--target", help="Target agent to restore on")
+    restore_parser.add_argument("--target", help="Target agent to restore on", default=target)
     restore_parser.set_defaults(restore=True)
 
     rm_parser = sub_parser.add_parser("rm", help="Delete existing backup")
@@ -83,6 +84,7 @@ class Runtime(object):
     agent_add_parser = sub_parser.add_parser("agent-add", help="ADD, DELETE agents")
     agent_add_parser.add_argument("host", help="host of agent")
     agent_add_parser.add_argument("port", help="port of agent")
+    agent_add_parser.add_argument("--name", help="name of agent", default=lback_unique_agent_name())
     agent_add_parser.set_defaults(agent_add=True)
     agent_add_parser.set_defaults(name=False)
 
@@ -96,8 +98,9 @@ class Runtime(object):
     agent_ls_parser.set_defaults(agent_ls=True)
     agent_ls_parser.set_defaults(name=False)
 
-    focus_parser = sub_parser.add_parser("focus", help="Focuses on an agent for backups/restores")
-    focus_parser.set_defaults(focus=True)
+    agent_focus_parser = sub_parser.add_parser("agent-focus", help="Focuses on an agent for backups/restores")
+    agent_focus_parser.add_argument("id", help="ID of agent")
+    agent_focus_parser.set_defaults(agent_focus=True)
 
 
     self.args = parser.parse_args()
@@ -131,7 +134,7 @@ class Runtime(object):
       operation = OperationAgentRm(*operation_args)
     if check_parser("agent_ls"):
       operation = OperationAgentLs(*operation_args)
-    if check_parser("focus"):
-      operation = OperationFocus(*operation_args)
+    if check_parser("agent_focus"):
+      operation = OperationAgentFocus(*operation_args)
     operation.run()
     db.close()

@@ -14,6 +14,7 @@ import tarfile
 import sys
 import base64
 import shutil
+import stun
 from termcolor import colored
 from hashlib import md5
 from Crypto.Cipher import AES
@@ -107,6 +108,33 @@ def lback_exception( ex ) :
 def lback_dir():
     from os import getenv
     return "{}/.lback".format(getenv("HOME"))
+
+def lback_default_focused_agent():
+   ip_info =stun.get_ip_info()
+   public_ip = ip_info[1]
+   local_ip = "127.0.0.1"
+   ## prefer local
+   agents = lback_agents()
+   for agent in agents:
+       if local_ip==agent.host:
+            return agent.id
+       if public_ip==agent.host:
+            return agent.id
+   raise Exception("No default focused agent available")
+
+def lback_focused_agent():
+  file_name = os.path.join(lback_dir(), ".lbackfocus")
+
+  if not os.path.exists( file_name ):
+     default_id = lback_default_focused_agent()
+     with open(file_name, "w+") as focus_file:
+        focus_file.write( default_id )
+     return default_id 
+  with open(file_name, "r") as focus_file:
+     return focus_file.read()
+
+
+
 def lback_backup_dir():
     return lback_dir()+"/backups/"
 
@@ -164,8 +192,8 @@ def lback_backup( id ):
    db_backup = select_cursor.fetchone()
    return BackupObject(db_backup)
 
-def lback_backup_shard_size( id, count ):
-  return ( os.stat( lback_backup_path( id ) ).st_size / count )
+def lback_backup_shard_size( backup_size, count ):
+  return ( backup_size / count )
 
 def lback_backup_shard_start_end( shard_count, sharded_backup_size ):
   shard_start = ( shard_count * sharded_backup_size )
@@ -268,6 +296,13 @@ def lback_validate_id(id):
 def lback_untitled():
    return "Untitled"
 
+def lback_unique_agent_name():
+    db = lback_db()
+    select_cursor = db.cursor()
+    count = int(select_cursor.execute("SELECT COUNT(*) FROM agents"))
+    default_name =  "agent-{}".format( ( count ) )
+    return default_name
+
 def derive_key_and_iv(password, salt, key_length, iv_length):
     d = d_i = ''
     while len(d) < key_length + iv_length:
@@ -360,4 +395,5 @@ def is_writable( path ):
         e.filename = path
         raise
     return True
+
 

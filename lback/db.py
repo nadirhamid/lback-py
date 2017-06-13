@@ -30,4 +30,9 @@ class DBObject(object):
        select_cursor.execute("DELETE FROM " + cls.TABLE + " WHERE id LIKE %s",("%"+id+"%",))
        db_obj = select_cursor.fetchone()
        db.commit()
+  @classmethod
+  def eval_and_return(cls, db_obj):
+      if not db_obj:
+         return None
+      return cls( db_obj )
 	
