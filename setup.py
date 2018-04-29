@@ -75,7 +75,8 @@ deps = [
     "six==1.10.0",
     "protobuf==3.3.0",
     "pyinstaller==3.0",
-    "pystun==0.1.0"
+    "pystun==0.1.0",
+    "lz4==1.1.0"
 ]
 
 
