@@ -40,6 +40,7 @@ class Runtime(object):
     backup_parser.add_argument("--distribution-strategy", help="Defines the distribution strategy for the backup", default="shared")
     backup_parser.add_argument("--local",default=True, action="store_true") 
     backup_parser.add_argument("--encryption-key", help="Set an encryption key for the backup")
+    backup_parser.add_argument("--compression", help="How to compress backup. supports: LZ4")
     backup_parser.add_argument("--target", help="Target agent for the backup", default=target)
     backup_parser.set_defaults(backup=True)
 

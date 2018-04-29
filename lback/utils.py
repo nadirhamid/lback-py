@@ -340,6 +340,18 @@ def lback_decrypt(in_file, out_file, password, key_length=32):
             finished = True
         out_file.write(chunk)
 
+def lback_compress(in_file, out_file, algorithm=None):
+    import lz4.frame
+    contents = in_file.read()
+    compressed = lz4.frame.compress( contents )
+    out_file.write( contents )
+
+def lback_decompress(in_file, out_file, algorithm=None):
+    import lz4.frame
+    contents = in_file.read()
+    decompressed = lz4.frame.decompress( contents )
+    out_file.write( decompressed )
+
 
 def lback_db( ):
   from os import getenv

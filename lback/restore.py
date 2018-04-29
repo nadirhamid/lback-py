@@ -6,11 +6,12 @@ from .basic_wrapper import BasicWrapper
 
 class Restore(BasicWrapper):
   SUFFIX = "R"
-  def __init__(self, backup_id, folder='./', run=True, encryption_key=None):
+  def __init__(self, backup_id, folder='./', run=True, encryption_key=None, compression=None):
     self.id = backup_id
     self.archive = self.get_file()
     self.folder = folder
     self.encryption_key = encryption_key
+    self.compression= compression
     self.do_run = run
 
   def run(self, local=False):
@@ -23,9 +24,16 @@ class Restore(BasicWrapper):
         with open(self.archive, "rb") as in_file, open(temp_file.name, "wb") as out_file:
            lback_decrypt(in_file, out_file, self.encryption_key)
         shutil.move(temp_file.name, self.archive)
+    def run_decompression():
+
+        with open(self.archive, "rb") as in_file, open(temp_file.name, "wb") as out_file:
+               lback_decompress(in_file, out_file)
+        shutil.move(temp_file.name, self.archive)
 
     if self.encryption_key:
         run_decryptor()
+    if self.compression:
+        run_decompression()
 
     untar(self.archive, self.folder)
     os.remove( self.archive )
